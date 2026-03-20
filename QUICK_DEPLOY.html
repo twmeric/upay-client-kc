@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Portal 部署指南</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #1a202c;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+        }
+        h2 {
+            color: #2d3748;
+            font-size: 20px;
+            margin: 24px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 16px 0;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        .step-desc {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: #2d3748;
+        }
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .alert {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+        .alert-info {
+            background: #ebf8ff;
+            border-color: #90cdf4;
+            color: #2b6cb0;
+        }
+        .file-path {
+            background: #e6fffa;
+            border: 1px solid #81e6d9;
+            color: #234e52;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .highlight {
+            background: #fef5e7;
+            border: 1px solid #f6e05e;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🚀 Payment Portal 部署指南</h1>
+            <p class="subtitle">Cloudflare Pages 手動部署步驟（推薦方式）</p>
+            
+            <div class="alert alert-info">
+                <strong>ℹ️ 提示：</strong>由於 API Token 權限限制，建議使用手動上傳方式部署。
+                這也是最穩定可靠的方式！
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📦 部署文件</h2>
+            <p>已為您準備好部署包：</p>
+            <div class="file-path">
+                C:\Users\Owner\cloudflare\kingchicken\payment-portal-deploy.zip
+            </div>
+            <p style="margin-top: 12px; color: #4a5568;">
+                大小：0.88 MB | 包含：index.html, assets/, _routes.json
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>📝 部署步驟</h2>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">登入 Cloudflare Dashboard</div>
+                    <div class="step-desc">
+                        前往 <a href="https://dash.cloudflare.com" target="_blank">https://dash.cloudflare.com</a><br>
+                        使用帳戶：<code>dfbee5c2a5706a81bc04675499c933d4</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">創建 Pages 專案</div>
+                    <div class="step-desc">
+                        點擊左側菜單 <strong>"Workers & Pages"</strong><br>
+                        點擊 <strong>"Create application"</strong><br>
+                        選擇 <strong>"Pages"</strong> 標籤<br>
+                        點擊 <strong>"Upload assets"</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">設置專案名稱</div>
+                    <div class="step-desc">
+                        專案名稱輸入：<code>payment-portal</code><br>
+                        （將生成網址：payment-portal.pages.dev）
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">上傳文件</div>
+                    <div class="step-desc">
+                        拖放上傳 ZIP 文件：<br>
+                        <code>payment-portal-deploy.zip</code><br>
+                        或點擊選擇文件
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">完成部署</div>
+                    <div class="step-desc">
+                        點擊 <strong>"Deploy site"</strong><br>
+                        等待 30-60 秒即可完成部署
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>✅ 部署後檢查</h2>
+            <div class="highlight">
+                <strong>網站地址將是：</strong><br>
+                <code>https://payment-portal.pages.dev</code>
+            </div>
+            <p>請檢查以下項目：</p>
+            <ul style="margin-left: 24px; color: #4a5568; line-height: 2;">
+                <li>付款頁面可以正常顯示</li>
+                <li>可以選擇金額和付款方式</li>
+                <li>點擊"立即支付"後能正確跳轉</li>
+                <li>Webhook 回調正常運作</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>🔗 後端 API 配置</h2>
+            <p>當前配置的后端地址：</p>
+            <div class="code-block">
+https://staging--55cdi3nfi9dh4f92yskx.youbase.cloud
+            </div>
+            <p style="margin-top: 12px;">
+                如需修改，請更新 <code>src/api/client.ts</code> 後重新構建。
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>🆘 常見問題</h2>
+            
+            <div class="step">
+                <div class="step-content">
+                    <div class="step-title">404 Not Found</div>
+                    <div class="step-desc">
+                        這是正常的，因為是 SPA（單頁應用）。<br>
+                        已包含 <code>_routes.json</code> 配置，Cloudflare Pages 會自動處理。
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-content">
+                    <div class="step-title">API 連接失敗</div>
+                    <div class="step-desc">
+                        檢查 Worker 是否正常運行：<br>
+                        <code>https://staging--55cdi3nfi9dh4f92yskx.youbase.cloud/api/public/payment/query/test</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 32px;">
+            <a href="https://dash.cloudflare.com" class="btn" target="_blank">前往 Cloudflare Dashboard →</a>
+        </div>
+    </div>
+</body>
+</html>

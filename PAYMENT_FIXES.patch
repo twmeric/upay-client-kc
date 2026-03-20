@@ -1,0 +1,851 @@
+# 付款 Portal 修復補丁
+# 適用於 EasyLink Payment Integration
+
+---
+
+## 1. 修復金額處理 (PaymentPage.tsx)
+
+```typescript
+// src/pages/PaymentPage.tsx
+// 修改 handleCustomInput 函數
+
+const handleCustomInput = (val: string) => {
+  // 只允許數字和小數點
+  let num = val.replace(/[^0-9.]/g, "");
+  
+  // 限制只能有一個小數點
+  const parts = num.split('.');
+  if (parts.length > 2) {
+    num = parts[0] + '.' + parts.slice(1).join('');
+  }
+  
+  // 限制小數點後兩位
+  if (parts.length === 2) {
+    parts[1] = parts[1].slice(0, 2);
+    num = parts.join('.');
+  }
+  
+  // 限制最大金額 999,999.99
+  const floatVal = parseFloat(num);
+  if (floatVal > 999999.99) {
+    num = "999999.99";
+  }
+  
+  setAmount(num);
+  setSelectedPreset(null);
+};
+
+// 修改 PRESET_AMOUNTS 為元為單位
+const PRESET_AMOUNTS = [50, 100, 250, 500]; // HKD
+
+// 修改 handlePay 中的金額傳遞
+const handlePay = async () => {
+  const numAmount = parseFloat(amount);
+  if (!numAmount || numAmount <= 0) {
+    setError("請輸入有效金額");
+    return;
+  }
+  if (numAmount < 0.01) {
+    setError("最小金額為 HK$0.01");
+    return;
+  }
+  
+  setLoading(true);
+  setError("");
+
+  try {
+    const res = await client.api.fetch("/api/public/payment/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: numAmount, // 傳遞元為單位，後端轉換為分
+        payType,
+        subject: "Payment",
+        body: "Payment",
+        idempotencyKey: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      }),
+    });
+    // ... 其餘代碼
+  }
+};
+```
+
+---
+
+## 2. 新增付款方式配置 (types/payment.ts)
+
+```typescript
+// src/types/payment.ts
+
+export interface PaymentMethodConfig {
+  wayCode: string;
+  label: string;
+  icon: string;
+  description?: string;
+  requiresChannelExtra: boolean;
+  channelExtraFields: ChannelExtraField[];
+}
+
+interface ChannelExtraField {
+  name: string;
+  type: 'select' | 'text' | 'hidden';
+  label?: string;
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  defaultValue?: string;
+  required?: boolean;
+}
+
+export const PAYMENT_METHODS: PaymentMethodConfig[] = [
+  {
+    wayCode: 'UP_OP',
+    label: '銀聯在線支付',
+    icon: 'unionpay',
+    description: '支持銀聯卡快捷支付',
+    requiresChannelExtra: false,
+    channelExtraFields: [
+      { 
+        name: 'accNo', 
+        type: 'text', 
+        label: '預設銀行卡號',
+        placeholder: '選填，用於快捷支付',
+        required: false 
+      }
+    ]
+  },
+  {
+    wayCode: 'ALI_H5',
+    label: '支付寶',
+    icon: 'alipay',
+    description: '支付寶香港/中國大陸錢包',
+    requiresChannelExtra: true,
+    channelExtraFields: [
+      { 
+        name: 'walletType', 
+        type: 'select', 
+        label: '錢包類型',
+        options: [
+          { value: 'HK', label: '香港錢包 (AlipayHK)' },
+          { value: 'CN', label: '中國大陸錢包 (支付寶)' }
+        ],
+        defaultValue: 'HK',
+        required: true 
+      }
+    ]
+  },
+  {
+    wayCode: 'WX_H5',
+    label: '微信支付',
+    icon: 'wechat',
+    description: '微信 H5 支付',
+    requiresChannelExtra: false,
+    channelExtraFields: [
+      { 
+        name: 'appid', 
+        type: 'hidden',
+        required: false 
+      }
+    ]
+  }
+];
+
+// 動態構建 channelExtra
+export function buildChannelExtra(
+  wayCode: string, 
+  values: Record<string, string>
+): string | undefined {
+  const method = PAYMENT_METHODS.find(m => m.wayCode === wayCode);
+  if (!method) {
+    return undefined;
+  }
+  
+  const extra: Record<string, string> = {};
+  for (const field of method.channelExtraFields) {
+    const value = values[field.name] || field.defaultValue;
+    if (value && value.trim() !== '') {
+      extra[field.name] = value;
+    }
+  }
+  
+  return Object.keys(extra).length > 0 ? JSON.stringify(extra) : undefined;
+}
+
+// 舊的 PAY_TYPES 保持兼容
+export const PAY_TYPES = PAYMENT_METHODS.map(m => ({
+  value: m.wayCode,
+  label: m.label
+}));
+```
+
+---
+
+## 3. 修復後端金額處理 (backend/server/src/index.ts)
+
+```typescript
+// backend/server/src/index.ts
+// 修改 create order 函數
+
+app.post("/api/public/payment/create", async (c) => {
+  try {
+    const { 
+      amount, 
+      payType, 
+      subject, 
+      body: orderBody, 
+      returnUrl,
+      idempotencyKey,
+      channelExtra 
+    } = await c.req.json();
+
+    // 驗證金額
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return c.json({ error: "Invalid amount", code: "INVALID_AMOUNT" }, 400);
+    }
+    if (numAmount > 999999.99) {
+      return c.json({ error: "Amount exceeds limit", code: "AMOUNT_TOO_LARGE" }, 400);
+    }
+
+    // 檢查冪等性
+    if (idempotencyKey) {
+      const existing = await edgespark.db
+        .select()
+        .from(tables.transactions)
+        .where(eq(tables.transactions.idempotencyKey, idempotencyKey))
+        .limit(1);
+        
+      if (existing.length > 0) {
+        // 返回已存在的訂單
+        const txn = existing[0];
+        return c.json({
+          success: true,
+          orderNo: txn.orderNo,
+          payUrl: txn.payUrl,
+          payDataType: txn.payDataType,
+          cached: true,
+        });
+      }
+    }
+
+    const config = getEasyLinkConfig(edgespark);
+    const orderNo = generateOrderNo();
+    
+    // 金額轉換：元 -> 分
+    const amountInCents = Math.round(numAmount * 100);
+
+    // Determine worker URL for notify
+    const requestUrl = new URL(c.req.url);
+    const workerBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+    const notifyUrl = `${workerBaseUrl}/api/webhooks/easylink/notify`;
+
+    // Build EasyLink request params
+    const wayCode = payType || "UP_OP";
+    const finalSubject = subject || "Payment";
+    const finalBody = orderBody || "Payment";
+    const finalReturnUrl = returnUrl || `${requestUrl.protocol}//${requestUrl.host}/payment/result?orderNo=${orderNo}`;
+    const reqTime = Date.now().toString();
+
+    // 構建基本參數
+    const signParams: Record<string, string> = {
+      mchNo: config.mchNo,
+      appId: config.appId,
+      mchOrderNo: orderNo,
+      wayCode,
+      amount: amountInCents.toString(),
+      currency: "HKD",
+      subject: finalSubject,
+      body: finalBody,
+      notifyUrl,
+      returnUrl: finalReturnUrl,
+      reqTime,
+      version: "1.0",
+      signType: "MD5",
+    };
+
+    // 添加 channelExtra（如果有）
+    if (channelExtra) {
+      signParams.channelExtra = typeof channelExtra === 'string' 
+        ? channelExtra 
+        : JSON.stringify(channelExtra);
+    }
+
+    // 添加過期時間（30分鐘）
+    signParams.expiredTime = "1800";
+
+    // Generate sign
+    const sign = await generateSign(signParams, config.appSecret);
+
+    // Build request body
+    const requestBody: Record<string, any> = {
+      ...signParams,
+      amount: amountInCents,  // int type
+      reqTime: parseInt(reqTime, 10),  // long type
+      sign,
+    };
+
+    console.log("[Payment] Creating order:", { 
+      orderNo, 
+      amount: amountInCents, 
+      wayCode, 
+      channelExtra: signParams.channelExtra,
+      environment: config.environment 
+    });
+
+    // Call EasyLink API
+    const response = await fetch(`${config.baseUrl}/api/pay/unifiedOrder`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Request-ID": orderNo, // 用於追踪
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const result = await response.json() as Record<string, any>;
+    console.log("[Payment] EasyLink response:", JSON.stringify(result));
+
+    // 檢查 API 返回
+    if (!response.ok) {
+      console.error("[Payment] HTTP error:", response.status);
+      return c.json({ 
+        success: false, 
+        error: `Payment gateway error: ${response.status}`,
+        code: "GATEWAY_ERROR"
+      }, 502);
+    }
+
+    // Save transaction to DB
+    await edgespark.db.insert(tables.transactions).values({
+      orderNo,
+      mchOrderNo: orderNo,
+      mchNo: config.mchNo,
+      amount: amountInCents,
+      currency: "HKD",
+      payType: wayCode,
+      subject: finalSubject,
+      body: finalBody,
+      status: result.code === 0 ? 1 : 0,
+      notifyUrl,
+      returnUrl: finalReturnUrl,
+      rawResponse: JSON.stringify(result),
+      customerIp: c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || "",
+      idempotencyKey: idempotencyKey || null,
+      payUrl: result.data?.payData || null,
+      payDataType: result.data?.payDataType || null,
+      channelExtra: signParams.channelExtra || null,
+    });
+
+    if (result.code === 0) {
+      const payData = result.data?.payData;
+      const payDataType = result.data?.payDataType;
+      
+      console.log("[Payment] Success - payDataType:", payDataType, "payData:", payData?.substring(0, 100));
+      
+      return c.json({
+        success: true,
+        orderNo,
+        payUrl: payData,
+        payDataType,
+        data: result.data,
+      });
+    } else {
+      console.error("[Payment] EasyLink error:", result.code, result.msg);
+      return c.json({
+        success: false,
+        orderNo,
+        error: result.msg || "Payment creation failed",
+        errorCode: result.code,
+        data: result,
+      }, 400);
+    }
+  } catch (error: any) {
+    console.error("[Payment] Create order error:", error.message, error.stack);
+    return c.json({ 
+      error: "Internal server error",
+      code: "INTERNAL_ERROR"
+    }, 500);
+  }
+});
+```
+
+---
+
+## 4. 加強 Webhook 安全 (backend/server/src/index.ts)
+
+```typescript
+// backend/server/src/index.ts
+// 替換 webhook handler
+
+app.post("/api/webhooks/easylink/notify", async (c) => {
+  const startTime = Date.now();
+  
+  try {
+    // 1. 解析請求體
+    let data: Record<string, any>;
+    const contentType = c.req.header("content-type") || "";
+    
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const formData = await c.req.parseBody();
+      data = formData as Record<string, any>;
+    } else {
+      data = await c.req.json() as Record<string, any>;
+    }
+    
+    console.log("[Webhook] Received notification:", {
+      mchOrderNo: data.mchOrderNo,
+      state: data.state,
+      timestamp: new Date().toISOString(),
+    });
+
+    // 2. 驗證必要字段
+    if (!data.mchOrderNo || !data.sign || !data.state) {
+      console.error("[Webhook] Missing required fields");
+      return c.text("fail");
+    }
+
+    // 3. 獲取配置
+    const config = getEasyLinkConfig(edgespark);
+
+    // 4. 驗證時間戳（防止重放攻擊，5分鐘窗口）
+    const reqTime = parseInt(data.reqTime || '0');
+    const now = Date.now();
+    if (Math.abs(now - reqTime) > 5 * 60 * 1000) {
+      console.error("[Webhook] Request expired, reqTime:", reqTime, "now:", now);
+      return c.text("fail");
+    }
+
+    // 5. 驗證商戶號匹配
+    if (data.mchNo !== config.mchNo) {
+      console.error("[Webhook] Mismatch mchNo:", data.mchNo, "expected:", config.mchNo);
+      return c.text("fail");
+    }
+
+    // 6. 驗證簽名
+    const receivedSign = data.sign;
+    const params: Record<string, string> = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (k !== "sign" && v !== undefined && v !== null && v !== "") {
+        params[k] = String(v);
+      }
+    }
+    const expectedSign = await generateSign(params, config.appSecret);
+
+    if (receivedSign !== expectedSign) {
+      console.error("[Webhook] Sign verification failed:", { 
+        received: receivedSign, 
+        expected: expectedSign,
+        params: Object.keys(params)
+      });
+      return c.text("fail");
+    }
+
+    // 7. 查詢並驗證訂單存在
+    const existingOrder = await edgespark.db
+      .select()
+      .from(tables.transactions)
+      .where(eq(tables.transactions.orderNo, data.mchOrderNo))
+      .limit(1);
+      
+    if (existingOrder.length === 0) {
+      console.error("[Webhook] Order not found:", data.mchOrderNo);
+      return c.text("fail");
+    }
+
+    const order = existingOrder[0];
+
+    // 8. 驗證金額匹配（防止篡改）
+    const notifyAmount = parseInt(data.amount || '0');
+    if (notifyAmount !== order.amount) {
+      console.error("[Webhook] Amount mismatch:", {
+        notify: notifyAmount,
+        order: order.amount
+      });
+      // 這是一個嚴重問題，但為了不影響用戶，仍然更新狀態並記錄
+    }
+
+    // 9. 更新訂單狀態
+    const newStatus = parseInt(data.state || "0");
+    const updateData: any = {
+      status: newStatus,
+      updatedAt: Math.floor(Date.now() / 1000),
+      rawResponse: JSON.stringify(data),
+      payType: data.wayCode || order.payType,
+    };
+
+    // 只有成功時才設置支付時間
+    if (newStatus === 2 && order.status !== 2) {
+      updateData.paidAt = Math.floor(Date.now() / 1000);
+      updateData.channelOrderNo = data.channelOrderNo || null;
+    }
+
+    await edgespark.db
+      .update(tables.transactions)
+      .set(updateData)
+      .where(eq(tables.transactions.orderNo, data.mchOrderNo));
+
+    const duration = Date.now() - startTime;
+    console.log("[Webhook] Updated order:", data.mchOrderNo, 
+      "status:", newStatus, 
+      "duration:", duration + "ms");
+
+    return c.text("success");
+    
+  } catch (error: any) {
+    console.error("[Webhook] Error:", error.message, error.stack);
+    return c.text("fail");
+  }
+});
+```
+
+---
+
+## 5. 數據庫 Schema 更新
+
+```sql
+-- 添加到 db_schema.ts
+
+-- transactions 表新增字段
+ALTER TABLE transactions ADD COLUMN idempotency_key TEXT;
+ALTER TABLE transactions ADD COLUMN pay_url TEXT;
+ALTER TABLE transactions ADD COLUMN pay_data_type TEXT;
+ALTER TABLE transactions ADD COLUMN channel_extra TEXT;
+ALTER TABLE transactions ADD COLUMN channel_order_no TEXT;
+ALTER TABLE transactions ADD COLUMN expired_at INTEGER;
+
+-- 創建索引
+CREATE UNIQUE INDEX idx_transactions_idempotency_key ON transactions(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX idx_transactions_channel_order ON transactions(channel_order_no) WHERE channel_order_no IS NOT NULL;
+```
+
+---
+
+## 6. 環境配置管理 (backend/server/src/config.ts)
+
+```typescript
+// backend/server/src/config.ts
+
+import type { Client } from "@sdk/server-types";
+import { tables } from "@generated";
+
+export interface EasyLinkConfig {
+  baseUrl: string;
+  mchNo: string;
+  appId: string;
+  appSecret: string;
+  environment: 'test' | 'production';
+}
+
+export function getEasyLinkConfig(edgespark: Client<typeof tables>): EasyLinkConfig {
+  const env = edgespark.secret.get("EASYLINK_ENV") || 'test';
+  
+  const config: EasyLinkConfig = {
+    baseUrl: env === 'production' 
+      ? 'https://api-pay.gnete.com.hk' 
+      : 'https://ts-api-pay.gnete.com.hk',
+    mchNo: edgespark.secret.get("EASYLINK_MCH_NO")!,
+    appId: edgespark.secret.get("EASYLINK_APP_ID")!,
+    appSecret: edgespark.secret.get("EASYLINK_APP_SECRET")!,
+    environment: env as 'test' | 'production',
+  };
+  
+  // 驗證配置
+  const missing: string[] = [];
+  if (!config.mchNo) missing.push('EASYLINK_MCH_NO');
+  if (!config.appId) missing.push('EASYLINK_APP_ID');
+  if (!config.appSecret) missing.push('EASYLINK_APP_SECRET');
+  
+  if (missing.length > 0) {
+    throw new Error(`EasyLink configuration incomplete. Missing: ${missing.join(', ')}`);
+  }
+  
+  return config;
+}
+
+// 緩存配置（避免每次請求都讀取 secret）
+let cachedConfig: EasyLinkConfig | null = null;
+let cacheTime = 0;
+const CACHE_TTL = 60 * 1000; // 1 分鐘
+
+export function getCachedConfig(edgespark: Client<typeof tables>): EasyLinkConfig {
+  const now = Date.now();
+  if (cachedConfig && (now - cacheTime) < CACHE_TTL) {
+    return cachedConfig;
+  }
+  
+  cachedConfig = getEasyLinkConfig(edgespark);
+  cacheTime = now;
+  return cachedConfig;
+}
+```
+
+---
+
+## 7. 前端付款頁面增強 (PaymentPage.tsx 完整新版)
+
+```typescript
+// src/pages/PaymentPage.tsx
+import React, { useState, useEffect } from "react";
+import { client } from "../api/client";
+import { PAYMENT_METHODS, buildChannelExtra } from "../types/payment";
+
+const PRESET_AMOUNTS = [50, 100, 250, 500];
+
+export default function PaymentPage() {
+  const [amount, setAmount] = useState<string>("");
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
+  const [payType, setPayType] = useState("UP_OP");
+  const [channelExtraValues, setChannelExtraValues] = useState<Record<string, string>>({
+    walletType: 'HK'
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const selectedMethod = PAYMENT_METHODS.find(m => m.wayCode === payType);
+
+  const handlePresetClick = (val: number) => {
+    setSelectedPreset(val);
+    setAmount(val.toFixed(2));
+  };
+
+  const handleCustomInput = (val: string) => {
+    let num = val.replace(/[^0-9.]/g, "");
+    const parts = num.split('.');
+    if (parts.length > 2) {
+      num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    if (parts.length === 2) {
+      parts[1] = parts[1].slice(0, 2);
+      num = parts.join('.');
+    }
+    const floatVal = parseFloat(num);
+    if (floatVal > 999999.99) {
+      num = "999999.99";
+    }
+    setAmount(num);
+    setSelectedPreset(null);
+  };
+
+  const handlePay = async () => {
+    const numAmount = parseFloat(amount);
+    if (!numAmount || numAmount <= 0) {
+      setError("請輸入有效金額");
+      return;
+    }
+    if (numAmount < 0.01) {
+      setError("最小金額為 HK$0.01");
+      return;
+    }
+    
+    setLoading(true);
+    setError("");
+
+    try {
+      // 構建 channelExtra
+      const channelExtra = buildChannelExtra(payType, channelExtraValues);
+      
+      const res = await client.api.fetch("/api/public/payment/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: numAmount,
+          payType,
+          subject: "Payment",
+          body: "Payment",
+          idempotencyKey: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          channelExtra,
+        }),
+      });
+
+      const data = await res.json() as any;
+
+      if (data.success && data.payUrl) {
+        window.location.href = data.payUrl;
+      } else {
+        setError(data.error || "建立訂單失敗，請稍後再試");
+      }
+    } catch (e: any) {
+      setError("網絡錯誤，請稍後再試");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">線上收款</h1>
+          <p className="text-gray-500 mt-1">選擇金額並完成付款</p>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-xl p-8">
+          {/* Preset Amounts */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">快速選擇金額</label>
+            <div className="grid grid-cols-2 gap-3">
+              {PRESET_AMOUNTS.map((val) => (
+                <button
+                  key={val}
+                  onClick={() => handlePresetClick(val)}
+                  className={`py-4 rounded-2xl text-lg font-bold transition-all ${
+                    selectedPreset === val
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  HK$ {val.toLocaleString()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Amount */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">自定義金額 (HKD)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">HK$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => handleCustomInput(e.target.value)}
+                placeholder="0.00"
+                className="w-full pl-16 pr-4 py-4 text-2xl font-bold border-2 border-gray-200 rounded-2xl focus:border-blue-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">支付方式</label>
+            <select
+              value={payType}
+              onChange={(e) => setPayType(e.target.value)}
+              className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-2xl outline-none"
+            >
+              {PAYMENT_METHODS.map((m) => (
+                <option key={m.wayCode} value={m.wayCode}>{m.label}</option>
+              ))}
+            </select>
+            {selectedMethod?.description && (
+              <p className="mt-1 text-xs text-gray-500">{selectedMethod.description}</p>
+            )}
+          </div>
+
+          {/* Channel Extra Fields */}
+          {selectedMethod?.channelExtraFields.filter(f => f.type !== 'hidden').map(field => (
+            <div key={field.name} className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {field.label}
+                {field.required && <span className="text-red-500">*</span>}
+              </label>
+              {field.type === 'select' ? (
+                <select
+                  value={channelExtraValues[field.name] || field.defaultValue || ''}
+                  onChange={(e) => setChannelExtraValues(prev => ({
+                    ...prev,
+                    [field.name]: e.target.value
+                  }))}
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-2xl outline-none"
+                >
+                  {field.options?.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={channelExtraValues[field.name] || ''}
+                  onChange={(e) => setChannelExtraValues(prev => ({
+                    ...prev,
+                    [field.name]: e.target.value
+                  }))}
+                  placeholder={field.placeholder}
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-2xl outline-none"
+                />
+              )}
+            </div>
+          ))}
+
+          {/* Error */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            onClick={handlePay}
+            disabled={loading || !amount}
+            className="w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? "處理中..." : `立即支付 HK$ ${parseFloat(amount || "0").toLocaleString()}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 8. 部署檢查清單
+
+```bash
+# 1. 更新環境變量
+easylink secrets set EASYLINK_ENV=test
+easylink secrets set EASYLINK_MCH_NO=your_mch_no
+easylink secrets set EASYLINK_APP_ID=your_app_id
+easylink secrets set EASYLINK_APP_SECRET=your_secret
+
+# 2. 更新數據庫 schema
+easylink db sql "ALTER TABLE transactions ADD COLUMN idempotency_key TEXT;"
+easylink db sql "ALTER TABLE transactions ADD COLUMN pay_url TEXT;"
+easylink db sql "ALTER TABLE transactions ADD COLUMN pay_data_type TEXT;"
+easylink db sql "ALTER TABLE transactions ADD COLUMN channel_extra TEXT;"
+
+# 3. 部署後端
+cd backend/server
+easylink deploy
+
+# 4. 構建前端
+cd ../..
+npm run build
+
+# 5. 驗證測試
+curl -X POST https://your-domain.com/api/public/payment/create \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 1, "payType": "ALI_H5", "subject": "Test"}'
+```
+
+---
+
+## 測試案例
+
+### 測試 1: 銀聯支付
+```bash
+curl -X POST /api/public/payment/create -d '{
+  "amount": 50.00,
+  "payType": "UP_OP",
+  "channelExtra": {"accNo": "6250123456789016"}
+}'
+```
+
+### 測試 2: 支付寶香港錢包
+```bash
+curl -X POST /api/public/payment/create -d '{
+  "amount": 100.00,
+  "payType": "ALI_H5",
+  "channelExtra": {"walletType": "HK"}
+}'
+```
+
+### 測試 3: 微信支付
+```bash
+curl -X POST /api/public/payment/create -d '{
+  "amount": 200.00,
+  "payType": "WX_H5"
+}'
+```

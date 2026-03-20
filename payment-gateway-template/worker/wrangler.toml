@@ -1,0 +1,23 @@
+# Payment Gateway Worker Configuration
+name = "payment-gateway"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "payment-db"
+database_id = "YOUR_DATABASE_ID"
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+EASYLINK_BASE_URL = "https://api-pay.gnete.com.hk"
+CURRENCY = "HKD"
+MERCHANT_NAME = "Your Merchant Name"
+MERCHANT_NAME_EN = "Your Merchant Name EN"
+
+# Secrets (Set using: wrangler secret put <name>)
+# - EASYLINK_MCH_NO
+# - EASYLINK_APP_ID
+# - EASYLINK_APP_SECRET

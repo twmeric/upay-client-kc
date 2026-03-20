@@ -1,0 +1,10 @@
+# King-Chicken DNS API Token
+# 記錄時間: 2026-03-19
+# 用途: 自動化域名設置
+# 權限: DNS 編輯、Zone 管理
+
+DNS_API_TOKEN=wNu0gSgw3LLEERkKet9SB7qaut-dHLrb3EBX_XGr
+
+# 使用方法:
+# $env:CLOUDFLARE_API_TOKEN="wNu0gSgw3LLEERkKet9SB7qaut-dHLrb3EBX_XGr"
+# 然後執行 wrangler 或 API 調用
