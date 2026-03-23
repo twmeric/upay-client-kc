@@ -1,0 +1,47 @@
+name: Cloudflare Deploy
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3
+
+      - name: Deploy Frontend to Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          cd UpayClient/_KC
+          wrangler pages deploy . --project-name=upay-client-kc --branch=main --commit-dirty=true
+
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          cd payment-worker
+          wrangler deploy
+
+      - name: Deployment Status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ All deployments successful!"
+            echo "Frontend: https://upay-client-kc.pages.dev"
+            echo "API: https://payment-api.jimsbond007.workers.dev"
+          else
+            echo "❌ Deployment failed"
+          fi

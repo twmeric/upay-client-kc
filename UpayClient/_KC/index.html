@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #ff9500 0%, #ffb84d 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,30 +23,37 @@
         }
 
         .payment-container {
-            background: white;
+            background: #1e1e2f;
             border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             width: 100%;
             max-width: 480px;
             overflow: hidden;
+            border: 1px solid rgba(255, 107, 0, 0.1);
         }
 
         .header {
-            background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+            background: linear-gradient(135deg, #FF6B00 0%, #E55A00 100%);
             color: white;
             padding: 32px;
             text-align: center;
         }
 
         .logo {
-            font-size: 28px;
-            font-weight: 700;
             margin-bottom: 8px;
+        }
+
+        .logo img {
+            height: 80px;
+            width: auto;
+            display: block;
+            margin: 0 auto;
         }
 
         .subtitle {
             opacity: 0.9;
             font-size: 14px;
+            font-weight: 500;
         }
 
         .content {
@@ -56,7 +63,7 @@
         .section-title {
             font-size: 16px;
             font-weight: 600;
-            color: #1a1a1a;
+            color: #ffffff;
             margin-bottom: 16px;
             display: flex;
             align-items: center;
@@ -67,7 +74,7 @@
             content: '';
             width: 4px;
             height: 20px;
-            background: #ff9500;
+            background: #FF6B00;
             border-radius: 2px;
         }
 
@@ -80,24 +87,24 @@
 
         .amount-btn {
             padding: 16px;
-            border: 2px solid #e5e7eb;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            background: white;
+            background: rgba(255, 255, 255, 0.05);
             cursor: pointer;
             transition: all 0.2s;
             font-size: 18px;
             font-weight: 600;
-            color: #1a1a1a;
+            color: #ffffff;
         }
 
         .amount-btn:hover {
-            border-color: #ff9500;
-            background: #fff8f0;
+            border-color: #FF6B00;
+            background: rgba(255, 107, 0, 0.1);
         }
 
         .amount-btn.selected {
-            border-color: #ff9500;
-            background: #ff9500;
+            border-color: #FF6B00;
+            background: linear-gradient(135deg, #FF6B00 0%, #E55A00 100%);
             color: white;
         }
 
@@ -116,22 +123,30 @@
             transform: translateY(-50%);
             font-size: 18px;
             font-weight: 600;
-            color: #666;
+            color: #FF6B00;
+            z-index: 1;
         }
 
         .amount-input {
             width: 100%;
-            padding: 16px 16px 16px 40px;
-            border: 2px solid #e5e7eb;
+            padding: 16px 16px 16px 72px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
             font-size: 18px;
             font-weight: 600;
-            transition: border-color 0.2s;
+            color: #ffffff;
+            transition: all 0.2s;
         }
 
         .amount-input:focus {
             outline: none;
-            border-color: #ff9500;
+            border-color: #FF6B00;
+            background: rgba(255, 107, 0, 0.05);
+        }
+
+        .amount-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
         }
 
         .payment-methods {
@@ -148,26 +163,27 @@
             display: flex;
             align-items: center;
             padding: 16px;
-            border: 2px solid #e5e7eb;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .method-item:hover {
-            border-color: #ff9500;
-            background: #fff8f0;
+            border-color: #FF6B00;
+            background: rgba(255, 107, 0, 0.1);
         }
 
         .method-item.selected {
-            border-color: #ff9500;
-            background: #fff8f0;
+            border-color: #FF6B00;
+            background: rgba(255, 107, 0, 0.15);
         }
 
         .method-radio {
             width: 20px;
             height: 20px;
-            border: 2px solid #d1d5db;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             margin-right: 12px;
             display: flex;
@@ -177,8 +193,8 @@
         }
 
         .method-item.selected .method-radio {
-            border-color: #ff9500;
-            background: #ff9500;
+            border-color: #FF6B00;
+            background: #FF6B00;
         }
 
         .method-radio::after {
@@ -216,20 +232,21 @@
 
         .method-name {
             font-weight: 600;
-            color: #1a1a1a;
+            color: #ffffff;
             margin-bottom: 2px;
         }
 
         .method-desc {
             font-size: 12px;
-            color: #666;
+            color: rgba(255, 255, 255, 0.6);
         }
 
         .summary {
-            background: #f9fafb;
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 24px;
+            border: 1px solid rgba(255, 107, 0, 0.1);
         }
 
         .summary-row {
@@ -237,24 +254,25 @@
             justify-content: space-between;
             margin-bottom: 8px;
             font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .summary-row:last-child {
             margin-bottom: 0;
             padding-top: 12px;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 18px;
             font-weight: 700;
         }
 
         .summary-value {
-            color: #ff9500;
+            color: #FF6B00;
         }
 
         .pay-button {
             width: 100%;
             padding: 18px;
-            background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+            background: linear-gradient(135deg, #FF6B00 0%, #E55A00 100%);
             color: white;
             border: none;
             border-radius: 12px;
@@ -270,7 +288,7 @@
 
         .pay-button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.4);
+            box-shadow: 0 10px 20px -5px rgba(255, 107, 0, 0.4);
         }
 
         .pay-button:disabled {
@@ -293,13 +311,14 @@
         }
 
         .error-message {
-            background: #fee2e2;
-            color: #dc2626;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 16px;
             font-size: 14px;
             display: none;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .error-message.show {
@@ -309,21 +328,27 @@
         .footer {
             text-align: center;
             padding: 16px 32px;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 12px;
-            color: #999;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         .footer a {
-            color: #ff9500;
+            color: #FF6B00;
             text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="payment-container">
         <div class="header">
-            <div class="logo">🍗 King-Chicken</div>
+            <div class="logo">
+                <img src="logo.png" alt="King-Chicken">
+            </div>
             <div class="subtitle">安全便捷的支付體驗</div>
         </div>
 
@@ -332,10 +357,10 @@
 
             <div class="section-title">選擇金額</div>
             <div class="amount-grid">
-                <button class="amount-btn" data-amount="100">HK$100</button>
-                <button class="amount-btn" data-amount="500">HK$500</button>
-                <button class="amount-btn" data-amount="1000">HK$1,000</button>
-                <button class="amount-btn" data-amount="2000">HK$2,000</button>
+                <button class="amount-btn" data-amount="100">HK$ 100</button>
+                <button class="amount-btn" data-amount="500">HK$ 500</button>
+                <button class="amount-btn" data-amount="1000">HK$ 1,000</button>
+                <button class="amount-btn" data-amount="2000">HK$ 2,000</button>
             </div>
 
             <div class="custom-amount">
@@ -353,7 +378,7 @@
                         <div class="method-icon unionpay">銀</div>
                         <div class="method-info">
                             <div class="method-name">銀聯在線支付</div>
-                            <div class="method-desc">支持各類銀聯卡</div>
+                            <div class="method-desc">安全快捷的銀行卡支付</div>
                         </div>
                     </label>
                     <label class="method-item" data-method="ALI_H5">
@@ -378,7 +403,7 @@
             <div class="summary">
                 <div class="summary-row">
                     <span>訂單金額</span>
-                    <span id="displayAmount">HK$0.00</span>
+                    <span id="displayAmount">HK$ 0.00</span>
                 </div>
                 <div class="summary-row">
                     <span>支付方式</span>
@@ -386,7 +411,7 @@
                 </div>
                 <div class="summary-row">
                     <span>實付金額</span>
-                    <span class="summary-value" id="finalAmount">HK$0.00</span>
+                    <span class="summary-value" id="finalAmount">HK$ 0.00</span>
                 </div>
             </div>
 
@@ -412,7 +437,6 @@
             'WX_H5': '微信支付'
         };
 
-        // 金額選擇
         document.querySelectorAll('.amount-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
@@ -423,14 +447,12 @@
             });
         });
 
-        // 自定義金額輸入
         document.getElementById('customAmount').addEventListener('input', function() {
             document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
             selectedAmount = parseFloat(this.value) || null;
             updateSummary();
         });
 
-        // 支付方式選擇
         document.querySelectorAll('.method-item').forEach(item => {
             item.addEventListener('click', function() {
                 document.querySelectorAll('.method-item').forEach(i => i.classList.remove('selected'));
@@ -442,8 +464,8 @@
 
         function updateSummary() {
             const amount = selectedAmount || 0;
-            document.getElementById('displayAmount').textContent = `HK$${amount.toFixed(2)}`;
-            document.getElementById('finalAmount').textContent = `HK$${amount.toFixed(2)}`;
+            document.getElementById('displayAmount').textContent = `HK$ ${amount.toFixed(2)}`;
+            document.getElementById('finalAmount').textContent = `HK$ ${amount.toFixed(2)}`;
             document.getElementById('displayMethod').textContent = methodNames[selectedMethod];
         }
 
@@ -479,7 +501,6 @@
                 const result = await response.json();
 
                 if (result.success && result.data.payUrl) {
-                    // 跳轉到 EasyLink 支付頁面
                     window.location.href = result.data.payUrl;
                 } else {
                     showError(result.error || '創建支付訂單失敗');
