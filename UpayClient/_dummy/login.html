@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登錄 - King-Chicken 管理後台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #ff9500 0%, #ffb84d 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+            color: white;
+            padding: 40px 32px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 40px 32px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #ff9500;
+            box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.1);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .login-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.4);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #ff9500;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <div class="logo">🧪 Dummy Test</div>
+            <div class="subtitle">開發測試環境登錄</div>
+        </div>
+
+        <div class="content">
+            <div id="errorMessage" class="error-message"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">用戶名</label>
+                    <input type="text" class="form-input" id="username" placeholder="輸入用戶名" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">密碼</label>
+                    <input type="password" class="form-input" id="password" placeholder="輸入密碼" required>
+                </div>
+
+                <button type="submit" class="login-button" id="loginButton">
+                    <span>登錄</span>
+                </button>
+            </form>
+
+            <div class="back-link">
+                <a href="index.html">← 返回支付頁面</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 預設登錄憑證
+        const USERS = {
+            'admin': 'kingchicken123',
+            'mimichu': '98113210'
+        };
+
+        // 檢查是否已登錄
+        if (localStorage.getItem('kc_admin_logged_in')) {
+            window.location.href = 'admin.html';
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            setTimeout(() => errorEl.classList.remove('show'), 5000);
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('loginButton');
+
+            button.disabled = true;
+            button.innerHTML = '<span class="loading"></span><span>登錄中...</span>';
+
+            // 簡單驗證
+            setTimeout(() => {
+                if (USERS[username] && USERS[username] === password) {
+                    // 登錄成功
+                    localStorage.setItem('kc_admin_logged_in', 'true');
+                    localStorage.setItem('kc_admin_user', username);
+                    window.location.href = 'admin.html';
+                } else {
+                    showError('用戶名或密碼錯誤');
+                    button.disabled = false;
+                    button.innerHTML = '<span>登錄</span>';
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>
