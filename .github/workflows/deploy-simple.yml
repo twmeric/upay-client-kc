@@ -1,0 +1,50 @@
+name: Deploy to Pages (Simple)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3
+
+      - name: Verify files
+        run: |
+          echo "=== Files to deploy ==="
+          ls -la UpayClient/_KC/
+          echo ""
+          echo "=== API_BASE check ==="
+          grep -n "API_BASE" UpayClient/_KC/index.html || echo "Not found"
+
+      - name: Deploy to Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          cd UpayClient/_KC
+          wrangler pages deploy . --project-name=upay-client-kc --branch=main --commit-dirty=true
+
+      - name: Deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+            echo "URL: https://upay-client-kc.pages.dev"
+          else
+            echo "❌ Deployment failed!"
+            echo "Please check:"
+            echo "1. CLOUDFLARE_API_TOKEN secret is set at Repository level"
+            echo "2. upay-client-kc project exists in Cloudflare"
+          fi
