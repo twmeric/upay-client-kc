@@ -538,24 +538,7 @@
                 if (data.success && data.report) {
                     preview.textContent = data.report.content || data.report;
                 } else {
-                    // 生成默認預覽
-                    const today = new Date().toLocaleDateString('zh-HK');
-                    preview.textContent = `*勁達路盟有限公司*
-*${today} 業務日報*
-
-*今日總覽*
-交易總額：HK$ 12,580.00
-訂單總數：47 筆
-成功訂單：45 筆
-成功率：96%
-平均每筆：HK$ 267.66
-
-*支付方式*
-銀聯：HK$ 8,500 (60%)
-支付寶：HK$ 2,580 (20%)
-微信：HK$ 1,500 (20%)
-
-_報告發自 King-Chicken 支付系統_`;
+                    preview.textContent = '無法生成報告：' + (data.error || '未知錯誤');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -691,3 +674,4 @@ _報告發自 King-Chicken 支付系統_`;
 </body>
 </html>
 
+<!-- NO CACHE 203047 -->
