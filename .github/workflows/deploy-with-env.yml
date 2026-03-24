@@ -1,0 +1,42 @@
+name: Deploy to Cloudflare Pages (with Environment)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # 指定使用 Environment secrets
+    environment: Cloudflare
+    name: Deploy Frontend
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3
+
+      - name: Deploy via Wrangler
+        env:
+          # 使用 Environment secrets
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          cd UpayClient/_KC
+          wrangler pages deploy . --project-name=upay-client-kc --branch=main --commit-dirty=true
+
+      - name: Deployment Status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ 部署成功！"
+            echo "URL: https://upay-client-kc.pages.dev"
+          else
+            echo "❌ 部署失敗"
+          fi
