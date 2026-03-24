@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>快速部署指南</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        h1 { color: #ff9500; }
+        .step { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 8px; }
+        .step h3 { margin-top: 0; color: #333; }
+        code { background: #e0e0e0; padding: 2px 6px; border-radius: 4px; }
+        .btn { display: inline-block; background: #ff9500; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; }
+        .highlight { color: #ff9500; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🚀 King-Chicken 支付系统 - 快速部署</h1>
+    
+    <div class="step">
+        <h3>步骤 1: 访问 Cloudflare Dashboard</h3>
+        <p>点击以下链接直接进入 Pages 管理页面:</p>
+        <a href="https://dash.cloudflare.com/dfbee5c2a5706a81bc04675499c933d4/pages" class="btn" target="_blank">打开 Dashboard</a>
+    </div>
+    
+    <div class="step">
+        <h3>步骤 2: 选择项目</h3>
+        <p>点击项目名称: <span class="highlight">upay-client-kc</span></p>
+    </div>
+    
+    <div class="step">
+        <h3>步骤 3: 创建部署</h3>
+        <p>1. 点击 <strong>"Create deployment"</strong> 按钮</p>
+        <p>2. 选择 <strong>"Upload folder"</strong></p>
+        <p>3. 选择文件夹: <code>C:\Users\Owner\cloudflare\kingchicken\UpayClient\_KC</code></p>
+        <p>4. 点击 <strong>"Deploy"</strong></p>
+    </div>
+    
+    <div class="step">
+        <h3>步骤 4: 验证</h3>
+        <p>部署完成后访问:</p>
+        <a href="https://upay-client-kc.pages.dev" class="btn" target="_blank">https://upay-client-kc.pages.dev</a>
+    </div>
+    
+    <div class="step">
+        <h3>⚡ 一键压缩包</h3>
+        <p>已创建部署包: <code>kc-upload.zip</code> (13.45 KB)</p>
+        <p>也可以直接上传此 zip 文件</p>
+    </div>
+    
+    <h2>📋 部署状态检查</h2>
+    <ul>
+        <li>✅ Worker API: https://payment-api.jimsbond007.workers.dev</li>
+        <li>✅ CORS 配置: 已更新允许 upay-client-kc.pages.dev</li>
+        <li>✅ EasyLink 密钥: 已配置</li>
+        <li>⏳ Pages 部署: 等待上传</li>
+    </ul>
+    
+    <p style="margin-top: 30px; color: #666;">
+        <small>提示: 部署后请清除浏览器缓存 (Ctrl+F5) 再测试</small>
+    </p>
+</body>
+</html>

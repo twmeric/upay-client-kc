@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King-Chicken 支付</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #ff9500 0%, #ffb84d 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+            color: white;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #ff9500;
+            border-radius: 2px;
+        }
+
+        .amount-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .amount-btn {
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .amount-btn:hover {
+            border-color: #ff9500;
+            background: #fff8f0;
+        }
+
+        .amount-btn.selected {
+            border-color: #ff9500;
+            background: #ff9500;
+            color: white;
+        }
+
+        .custom-amount {
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .amount-input {
+            width: 100%;
+            padding: 16px 16px 16px 40px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+
+        .amount-input:focus {
+            outline: none;
+            border-color: #ff9500;
+        }
+
+        .payment-methods {
+            margin-bottom: 24px;
+        }
+
+        .method-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .method-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .method-item:hover {
+            border-color: #ff9500;
+            background: #fff8f0;
+        }
+
+        .method-item.selected {
+            border-color: #ff9500;
+            background: #fff8f0;
+        }
+
+        .method-radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .method-item.selected .method-radio {
+            border-color: #ff9500;
+            background: #ff9500;
+        }
+
+        .method-radio::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .method-item.selected .method-radio::after {
+            opacity: 1;
+        }
+
+        .method-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .method-icon.unionpay { background: #e31e24; color: white; }
+        .method-icon.alipay { background: #1677ff; color: white; }
+        .method-icon.wechat { background: #07c160; color: white; }
+
+        .method-info {
+            flex: 1;
+        }
+
+        .method-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 2px;
+        }
+
+        .method-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .summary {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .summary-row:last-child {
+            margin-bottom: 0;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .summary-value {
+            color: #ff9500;
+        }
+
+        .pay-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .pay-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.4);
+        }
+
+        .pay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px 32px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .footer a {
+            color: #ff9500;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <div class="logo">🧪 Dummy Test</div>
+            <div class="subtitle">開發測試環境 - 非生產環境</div>
+        </div>
+
+        <div class="content">
+            <div id="errorMessage" class="error-message"></div>
+
+            <div class="section-title">選擇金額</div>
+            <div class="amount-grid">
+                <button class="amount-btn" data-amount="100">HK$100</button>
+                <button class="amount-btn" data-amount="500">HK$500</button>
+                <button class="amount-btn" data-amount="1000">HK$1,000</button>
+                <button class="amount-btn" data-amount="2000">HK$2,000</button>
+            </div>
+
+            <div class="custom-amount">
+                <div class="input-group">
+                    <span class="currency-symbol">HK$</span>
+                    <input type="number" class="amount-input" id="customAmount" placeholder="輸入自定義金額" min="1" step="0.01">
+                </div>
+            </div>
+
+            <div class="section-title">選擇支付方式</div>
+            <div class="payment-methods">
+                <div class="method-list">
+                    <label class="method-item selected" data-method="UP_OP">
+                        <div class="method-radio"></div>
+                        <div class="method-icon unionpay">銀</div>
+                        <div class="method-info">
+                            <div class="method-name">銀聯在線支付</div>
+                            <div class="method-desc">支持各類銀聯卡</div>
+                        </div>
+                    </label>
+                    <label class="method-item" data-method="ALI_H5">
+                        <div class="method-radio"></div>
+                        <div class="method-icon alipay">支</div>
+                        <div class="method-info">
+                            <div class="method-name">支付寶</div>
+                            <div class="method-desc">支付寶 H5 支付</div>
+                        </div>
+                    </label>
+                    <label class="method-item" data-method="WX_H5">
+                        <div class="method-radio"></div>
+                        <div class="method-icon wechat">微</div>
+                        <div class="method-info">
+                            <div class="method-name">微信支付</div>
+                            <div class="method-desc">微信 H5 支付</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-row">
+                    <span>訂單金額</span>
+                    <span id="displayAmount">HK$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>支付方式</span>
+                    <span id="displayMethod">銀聯在線支付</span>
+                </div>
+                <div class="summary-row">
+                    <span>實付金額</span>
+                    <span class="summary-value" id="finalAmount">HK$0.00</span>
+                </div>
+            </div>
+
+            <button class="pay-button" id="payButton" onclick="createPayment()">
+                <span>確認支付</span>
+            </button>
+        </div>
+
+        <div class="footer">
+            <a href="login.html">管理後台</a> | 安全支付保障
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://payment-api.jimsbond007.workers.dev/api/v1/client/dummy';
+        
+        let selectedAmount = null;
+        let selectedMethod = 'UP_OP';
+        
+        const methodNames = {
+            'UP_OP': '銀聯在線支付',
+            'ALI_H5': '支付寶',
+            'WX_H5': '微信支付'
+        };
+
+        // 金額選擇
+        document.querySelectorAll('.amount-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedAmount = parseFloat(this.dataset.amount);
+                document.getElementById('customAmount').value = '';
+                updateSummary();
+            });
+        });
+
+        // 自定義金額輸入
+        document.getElementById('customAmount').addEventListener('input', function() {
+            document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+            selectedAmount = parseFloat(this.value) || null;
+            updateSummary();
+        });
+
+        // 支付方式選擇
+        document.querySelectorAll('.method-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.method-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedMethod = this.dataset.method;
+                updateSummary();
+            });
+        });
+
+        function updateSummary() {
+            const amount = selectedAmount || 0;
+            document.getElementById('displayAmount').textContent = `HK$${amount.toFixed(2)}`;
+            document.getElementById('finalAmount').textContent = `HK$${amount.toFixed(2)}`;
+            document.getElementById('displayMethod').textContent = methodNames[selectedMethod];
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            setTimeout(() => errorEl.classList.remove('show'), 5000);
+        }
+
+        async function createPayment() {
+            if (!selectedAmount || selectedAmount <= 0) {
+                showError('請選擇或輸入有效的支付金額');
+                return;
+            }
+
+            const button = document.getElementById('payButton');
+            button.disabled = true;
+            button.innerHTML = '<span class="loading"></span><span>處理中...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/payment/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: selectedAmount,
+                        payType: selectedMethod,
+                        subject: 'King-Chicken Payment',
+                        returnUrl: window.location.origin + '/payment/success'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data.payUrl) {
+                    // 跳轉到 EasyLink 支付頁面
+                    window.location.href = result.data.payUrl;
+                } else {
+                    showError(result.error || '創建支付訂單失敗');
+                    button.disabled = false;
+                    button.innerHTML = '<span>確認支付</span>';
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showError('網絡錯誤，請重試');
+                button.disabled = false;
+                button.innerHTML = '<span>確認支付</span>';
+            }
+        }
+    </script>
+</body>
+</html>

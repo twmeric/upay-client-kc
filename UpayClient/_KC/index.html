@@ -1,0 +1,611 @@
+﻿<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King-Chicken 支付</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 
+                0 20px 60px -15px rgba(44, 36, 25, 0.15),
+                0 1px 3px rgba(44, 36, 25, 0.1);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            border: 1px solid rgba(201, 169, 97, 0.2);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--cream-dark) 0%, var(--beige) 100%);
+            padding: 40px 32px;
+            text-align: center;
+            border-bottom: 3px solid var(--hermes-orange);
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold), var(--hermes-orange));
+        }
+
+        .logo {
+            margin-bottom: 12px;
+        }
+
+        .logo img {
+            height: 90px;
+            width: auto;
+            display: block;
+            margin: 0 auto;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .brand-name {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-dark);
+            letter-spacing: 2px;
+            margin-top: 8px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 4px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .content {
+            padding: 36px 32px;
+        }
+
+        .section-title {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 1px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, var(--hermes-orange), var(--gold));
+            border-radius: 2px;
+        }
+
+        .amount-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .amount-btn {
+            padding: 18px 16px;
+            border: 2px solid var(--beige);
+            border-radius: 12px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 17px;
+            font-weight: 500;
+            color: var(--text-dark);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .amount-btn:hover {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.15);
+        }
+
+        .amount-btn.selected {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-dark) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 107, 0, 0.3);
+        }
+
+        .custom-amount {
+            margin-bottom: 28px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--hermes-orange);
+            z-index: 1;
+        }
+
+        .amount-input {
+            width: 100%;
+            padding: 18px 20px 18px 72px;
+            border: 2px solid var(--beige);
+            border-radius: 12px;
+            background: var(--white);
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .amount-input:focus {
+            outline: none;
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.08);
+        }
+
+        .amount-input::placeholder {
+            color: var(--text-light);
+            font-weight: 400;
+        }
+
+        .payment-methods {
+            margin-bottom: 28px;
+        }
+
+        .method-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .method-item {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            border: 2px solid var(--beige);
+            border-radius: 12px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .method-item:hover {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+        }
+
+        .method-item.selected {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.05) 0%, var(--white) 100%);
+        }
+
+        .method-radio {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--beige);
+            border-radius: 50%;
+            margin-right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .method-item.selected .method-radio {
+            border-color: var(--hermes-orange);
+            background: var(--hermes-orange);
+        }
+
+        .method-radio::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .method-item.selected .method-radio::after {
+            opacity: 1;
+        }
+
+        .method-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .method-icon.unionpay { 
+            background: linear-gradient(135deg, #e31e24, #c41a1f); 
+            color: white; 
+        }
+        .method-icon.alipay { 
+            background: linear-gradient(135deg, #1677ff, #0056d6); 
+            color: white; 
+        }
+        .method-icon.wechat { 
+            background: linear-gradient(135deg, #07c160, #059a4c); 
+            color: white; 
+        }
+
+        .method-info {
+            flex: 1;
+        }
+
+        .method-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 3px;
+            font-size: 15px;
+        }
+
+        .method-desc {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .summary {
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 28px;
+            border: 1px solid var(--beige);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: var(--text-medium);
+        }
+
+        .summary-row:last-child {
+            margin-bottom: 0;
+            padding-top: 14px;
+            border-top: 1px solid var(--beige);
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            color: var(--hermes-orange);
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+        }
+
+        .pay-button {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 16px rgba(255, 107, 0, 0.3);
+        }
+
+        .pay-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 107, 0, 0.4);
+        }
+
+        .pay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+            color: #dc2626;
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px 32px;
+            background: var(--cream-dark);
+            font-size: 12px;
+            color: var(--text-light);
+            border-top: 1px solid var(--beige);
+        }
+
+        .footer a {
+            color: var(--hermes-orange);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--hermes-dark);
+            text-decoration: underline;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 480px) {
+            .payment-container {
+                border-radius: 0;
+                max-width: 100%;
+            }
+            
+            body {
+                padding: 0;
+                background: var(--white);
+            }
+            
+            .content {
+                padding: 28px 20px;
+            }
+            
+            .header {
+                padding: 32px 20px;
+            }
+            
+            .logo img {
+                height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <div class="logo">
+                <img src="logo.png" alt="King-Chicken">
+            </div>
+            <div class="brand-name">KING-CHICKEN</div>
+            <div class="subtitle">Premium Payment</div>
+        </div>
+
+        <div class="content">
+            <div id="errorMessage" class="error-message"></div>
+
+            <div class="section-title">選擇金額</div>
+            <div class="amount-grid">
+                <button class="amount-btn" data-amount="100">HK$ 100</button>
+                <button class="amount-btn" data-amount="500">HK$ 500</button>
+                <button class="amount-btn" data-amount="1000">HK$ 1,000</button>
+                <button class="amount-btn" data-amount="2000">HK$ 2,000</button>
+            </div>
+
+            <div class="custom-amount">
+                <div class="input-group">
+                    <span class="currency-symbol">HK$</span>
+                    <input type="number" class="amount-input" id="customAmount" placeholder="輸入自定義金額" min="1" step="0.01">
+                </div>
+            </div>
+
+            <div class="section-title">選擇支付方式</div>
+            <div class="payment-methods">
+                <div class="method-list">
+                    <label class="method-item selected" data-method="UP_OP">
+                        <div class="method-radio"></div>
+                        <div class="method-icon unionpay">銀</div>
+                        <div class="method-info">
+                            <div class="method-name">銀聯在線支付</div>
+                            <div class="method-desc">安全快捷的銀行卡支付</div>
+                        </div>
+                    </label>
+                    <label class="method-item" data-method="ALI_H5">
+                        <div class="method-radio"></div>
+                        <div class="method-icon alipay">支</div>
+                        <div class="method-info">
+                            <div class="method-name">支付寶</div>
+                            <div class="method-desc">支付寶 H5 支付</div>
+                        </div>
+                    </label>
+                    <label class="method-item" data-method="WX_H5">
+                        <div class="method-radio"></div>
+                        <div class="method-icon wechat">微</div>
+                        <div class="method-info">
+                            <div class="method-name">微信支付</div>
+                            <div class="method-desc">微信 H5 支付</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-row">
+                    <span>訂單金額</span>
+                    <span id="displayAmount">HK$ 0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>支付方式</span>
+                    <span id="displayMethod">銀聯在線支付</span>
+                </div>
+                <div class="summary-row">
+                    <span>實付金額</span>
+                    <span class="summary-value" id="finalAmount">HK$ 0.00</span>
+                </div>
+            </div>
+
+            <button class="pay-button" id="payButton" onclick="createPayment()">
+                <span>確認支付</span>
+            </button>
+        </div>
+
+        <div class="footer">
+            <a href="login.html">管理後台</a> · 安全支付保障
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://payment-api.jimsbond007.workers.dev/api/v1/client/KC';
+        
+        let selectedAmount = null;
+        let selectedMethod = 'UP_OP';
+        
+        const methodNames = {
+            'UP_OP': '銀聯在線支付',
+            'ALI_H5': '支付寶',
+            'WX_H5': '微信支付'
+        };
+
+        document.querySelectorAll('.amount-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedAmount = parseFloat(this.dataset.amount);
+                document.getElementById('customAmount').value = '';
+                updateSummary();
+            });
+        });
+
+        document.getElementById('customAmount').addEventListener('input', function() {
+            document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+            selectedAmount = parseFloat(this.value) || null;
+            updateSummary();
+        });
+
+        document.querySelectorAll('.method-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.method-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedMethod = this.dataset.method;
+                updateSummary();
+            });
+        });
+
+        function updateSummary() {
+            const amount = selectedAmount || 0;
+            document.getElementById('displayAmount').textContent = `HK$ ${amount.toFixed(2)}`;
+            document.getElementById('finalAmount').textContent = `HK$ ${amount.toFixed(2)}`;
+            document.getElementById('displayMethod').textContent = methodNames[selectedMethod];
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            setTimeout(() => errorEl.classList.remove('show'), 5000);
+        }
+
+        async function createPayment() {
+            if (!selectedAmount || selectedAmount <= 0) {
+                showError('請選擇或輸入有效的支付金額');
+                return;
+            }
+
+            const button = document.getElementById('payButton');
+            button.disabled = true;
+            button.innerHTML = '<span class="loading"></span><span>處理中...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/payment/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: selectedAmount,
+                        payType: selectedMethod,
+                        subject: 'King-Chicken Payment',
+                        returnUrl: window.location.origin + '/payment/success'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data.payUrl) {
+                    window.location.href = result.data.payUrl;
+                } else {
+                    showError(result.error || '創建支付訂單失敗');
+                    button.disabled = false;
+                    button.innerHTML = '<span>確認支付</span>';
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showError('網絡錯誤，請重試');
+                button.disabled = false;
+                button.innerHTML = '<span>確認支付</span>';
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,11 @@
+# Cloudflare Super API Token
+# 權限: 完整帳號權限 (Workers, Pages, D1, DNS, etc.)
+# 創建時間: 2026-03-22
+# 用途: 母機團隊統一部署使用
+
+CLOUDFLARE_SUPER_TOKEN=cfut_U9fdeBzWaVKBK83pfPZAtmufVQnJqtCTKLQj53UFad7fbeca
+
+# 使用方式:
+# $env:CLOUDFLARE_API_TOKEN="cfut_U9fdeBzWaVKBK83pfPZAtmufVQnJqtCTKLQj53UFad7fbeca"
+# 或
+# wrangler deploy --token cfut_U9fdeBzWaVKBK83pfPZAtmufVQnJqtCTKLQj53UFad7fbeca

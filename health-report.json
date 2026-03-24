@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-03-21T03:34:41.296Z",
+  "totalChecks": 1,
+  "consecutiveFailures": 0,
+  "isHealthy": true,
+  "results": [
+    {
+      "healthy": true,
+      "name": "Dashboard Stats",
+      "id": "dashboardStats"
+    },
+    {
+      "healthy": true,
+      "name": "PayType Filter",
+      "id": "payTypeFilter"
+    },
+    {
+      "healthy": true,
+      "error": null,
+      "name": "Status Filter",
+      "id": "statusFilter"
+    },
+    {
+      "healthy": true,
+      "name": "Boss Config",
+      "id": "bossConfig"
+    },
+    {
+      "healthy": true,
+      "error": null,
+      "name": "Boss Reports",
+      "id": "bossReports"
+    },
+    {
+      "healthy": true,
+      "report": {
+        "date": "2026-03-21",
+        "totalAmount": 0,
+        "orderCount": 0,
+        "successCount": 0,
+        "successRate": "0%",
+        "content": "*勁達路盟有限公司*\n*2026-03-21 業務日報*\n\n*今日總覽*\n交易總額：HK$ 0\n訂單總數：0 筆\n成功訂單：0 筆\n成功率：0%\n平均每筆：HK$ 0\n\n*支付方式*\n"
+      },
+      "name": "Generate Report",
+      "id": "generateReport"
+    },
+    {
+      "healthy": true,
+      "error": null,
+      "details": "3/3 endpoints",
+      "name": "Payment API",
+      "id": "paymentAPI"
+    },
+    {
+      "healthy": true,
+      "status": 200,
+      "name": "Frontend",
+      "id": "frontend"
+    }
+  ],
+  "fixesApplied": []
+}

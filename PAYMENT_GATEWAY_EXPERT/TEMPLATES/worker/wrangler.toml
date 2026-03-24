@@ -1,0 +1,22 @@
+# Cloudflare Worker - Payment Gateway
+name = "payment-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+account_id = "dfbee5c2a5706a81bc04675499c933d4"
+
+# D1 Database - 存儲交易記錄
+[[d1_databases]]
+binding = "DB"
+database_name = "payment-db"
+database_id = "350594c4-4149-4519-b941-f9c0faf4121c"
+
+# 環境變量
+[vars]
+ENVIRONMENT = "production"
+EASYLINK_BASE_URL = "https://api-pay.gnete.com.hk"
+CURRENCY = "HKD"
+
+# Secrets (使用 wrangler secret put 設置):
+# - EASYLINK_MCH_NO
+# - EASYLINK_APP_ID
+# - EASYLINK_APP_SECRET
