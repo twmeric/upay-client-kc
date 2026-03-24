@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyLink 管理控制台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: var(--cream);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
+            border-bottom: 1px solid var(--beige);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(44, 36, 25, 0.08);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold), var(--hermes-orange));
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand img {
+            height: 48px;
+            width: auto;
+        }
+
+        .brand-text h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .brand-text span {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(22, 163, 74, 0.1);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--success);
+        }
+
+        .system-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .logout-btn {
+            padding: 10px 18px;
+            background: transparent;
+            color: var(--text-medium);
+            border: 2px solid var(--beige);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        /* Layout */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 24px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--white);
+            border-radius: 16px;
+            border: 1px solid var(--beige);
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            padding-left: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-medium);
+            text-decoration: none;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: var(--cream);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--hermes-orange), var(--hermes-dark));
+            color: white;
+        }
+
+        .nav-item-icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Content Area */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--beige);
+            box-shadow: 0 4px 20px rgba(44, 36, 25, 0.06);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-icon.blue { background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.05)); }
+        .stat-icon.green { background: linear-gradient(135deg, rgba(22, 163, 74, 0.15), rgba(22, 163, 74, 0.05)); }
+        .stat-icon.orange { background: linear-gradient(135deg, rgba(255, 107, 0, 0.15), rgba(255, 107, 0, 0.05)); }
+        .stat-icon.purple { background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(147, 51, 234, 0.05)); }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-top: 4px;
+        }
+
+        .stat-change {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        .stat-change.positive { color: var(--success); }
+
+        /* Section Card */
+        .section-card {
+            background: var(--white);
+            border-radius: 16px;
+            border: 1px solid var(--beige);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--beige);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--hermes-orange), var(--hermes-dark));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--cream);
+            color: var(--text-medium);
+            border: 1px solid var(--beige);
+        }
+
+        .section-body {
+            padding: 24px;
+        }
+
+        /* Client Table */
+        .client-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .client-table th {
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            background: var(--cream);
+            border-bottom: 2px solid var(--beige);
+        }
+
+        .client-table td {
+            padding: 16px;
+            font-size: 14px;
+            color: var(--text-medium);
+            border-bottom: 1px solid var(--beige);
+        }
+
+        .client-table tr:hover td {
+            background: var(--cream);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--success);
+        }
+
+        /* Onboarding Steps */
+        .onboarding-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            background: var(--cream);
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .step-item:hover {
+            border-color: var(--hermes-orange);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--hermes-orange);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .step-desc {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .step-action {
+            margin-top: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="brand">
+                <img src="logo.png" alt="EasyLink">
+                <div class="brand-text">
+                    <h1>EasyLink 管理控制台</h1>
+                    <span>Super Admin Portal</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="system-status">系統運行中</div>
+                <button class="logout-btn" onclick="logout()">登出</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="nav-section">
+                <div class="nav-section-title">總覽</div>
+                <a href="#dashboard" class="nav-item active">
+                    <span class="nav-item-icon">📊</span>
+                    <span>儀表板</span>
+                </a>
+                <a href="#clients" class="nav-item">
+                    <span class="nav-item-icon">👥</span>
+                    <span>客戶管理</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">運營</div>
+                <a href="#onboarding" class="nav-item">
+                    <span class="nav-item-icon">🚀</span>
+                    <span>新客戶入駐</span>
+                </a>
+                <a href="#transactions" class="nav-item">
+                    <span class="nav-item-icon">💳</span>
+                    <span>交易記錄</span>
+                </a>
+                <a href="#reports" class="nav-item">
+                    <span class="nav-item-icon">📈</span>
+                    <span>報告中心</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">系統</div>
+                <a href="#settings" class="nav-item">
+                    <span class="nav-item-icon">⚙️</span>
+                    <span>系統設置</span>
+                </a>
+                <a href="#logs" class="nav-item">
+                    <span class="nav-item-icon">📝</span>
+                    <span>日誌查看</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">客戶入口</div>
+                <a href="admin.html" class="nav-item">
+                    <span class="nav-item-icon">🍗</span>
+                    <span>King-Chicken</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content-area">
+            <!-- Stats Grid -->
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon blue">👥</div>
+                        <div class="stat-label">總客戶數</div>
+                    </div>
+                    <div class="stat-value" id="totalClients">1</div>
+                    <div class="stat-change positive">+1 本月新增</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon green">✓</div>
+                        <div class="stat-label">活躍客戶</div>
+                    </div>
+                    <div class="stat-value" id="activeClients">1</div>
+                    <div class="stat-change">100% 活躍率</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon orange">💰</div>
+                        <div class="stat-label">今日交易總額</div>
+                    </div>
+                    <div class="stat-value" id="todayAmount">HK$ 0</div>
+                    <div class="stat-change">即時更新</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon purple">📝</div>
+                        <div class="stat-label">待處理訂單</div>
+                    </div>
+                    <div class="stat-value" id="pendingOrders">0</div>
+                    <div class="stat-change">需要關注</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title">⚡ 快速操作</div>
+                </div>
+                <div class="section-body">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="startOnboarding()">+ 新增客戶</button>
+                        <button class="btn btn-secondary" onclick="deployAll()">🚀 一鍵部署</button>
+                        <button class="btn btn-secondary" onclick="viewLogs()">📋 查看日誌</button>
+                        <button class="btn btn-secondary" onclick="systemCheck()">🔍 系統檢查</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Client Onboarding -->
+            <div class="section-card" id="onboarding">
+                <div class="section-header">
+                    <div class="section-title">🚀 新客戶入駐流程</div>
+                    <button class="btn btn-primary" onclick="startNewClient()">開始新客戶入駐</button>
+                </div>
+                <div class="section-body">
+                    <div class="onboarding-flow">
+                        <div class="step-item">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <div class="step-title">客戶登記</div>
+                                <div class="step-desc">輸入客戶名稱、域名、聯系人信息，系統自動生成客戶代碼</div>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <div class="step-title">EasyLink 配置</div>
+                                <div class="step-desc">配置 MchNo、AppId、AppSecret，測試 API 連接</div>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <div class="step-title">支付方式設置</div>
+                                <div class="step-desc">啟用銀聯、支付寶、微信等支付方式，設置手續費率</div>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <div class="step-title">報告設置</div>
+                                <div class="step-desc">添加 WhatsApp 報告收件人，設置自動發送時間</div>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">5</div>
+                            <div class="step-content">
+                                <div class="step-title">測試驗證</div>
+                                <div class="step-desc">創建測試支付訂單，驗證 Webhook 通知是否正常</div>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">6</div>
+                            <div class="step-content">
+                                <div class="step-title">部署上線</div>
+                                <div class="step-desc">自動部署客戶專屬頁面到 Cloudflare Pages，提供訪問鏈接</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client List -->
+            <div class="section-card" id="clients">
+                <div class="section-header">
+                    <div class="section-title">👥 客戶列表</div>
+                    <button class="btn btn-primary" onclick="addClient()">+ 新增客戶</button>
+                </div>
+                <div class="section-body">
+                    <table class="client-table">
+                        <thead>
+                            <tr>
+                                <th>客戶代碼</th>
+                                <th>名稱</th>
+                                <th>域名</th>
+                                <th>狀態</th>
+                                <th>創建時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>KC001</td>
+                                <td>King-Chicken</td>
+                                <td>king-chicken.jkdcoding.com</td>
+                                <td><span class="status-badge active">● 運行中</span></td>
+                                <td>2026-03-20</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">管理</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'https://payment-api.jimsbond007.workers.dev/api/v1/client/KC';
+
+        // 檢查登入
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // 載入儀表板數據
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/db-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.todayStats) {
+                    document.getElementById('todayAmount').textContent = 
+                        'HK$ ' + (data.todayStats.revenue / 100).toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // 開始新客戶入駐
+        function startNewClient() {
+            alert('新客戶入駐流程：\n\n1. 創建客戶目錄\n2. 配置 EasyLink API\n3. 設置支付方式\n4. 部署到 Cloudflare\n\n（開發中）');
+        }
+
+        // 一鍵部署
+        function deployAll() {
+            if (!confirm('確定要一鍵部署所有客戶嗎？')) return;
+            alert('正在部署所有客戶...\n（開發中）');
+        }
+
+        // 查看日誌
+        function viewLogs() {
+            alert('查看系統日誌\n（開發中）');
+        }
+
+        // 系統檢查
+        function systemCheck() {
+            alert('系統健康檢查\n\n✓ Worker 運行正常\n✓ Database 連接正常\n✓ Pages 部署正常\n（開發中）');
+        }
+
+        // 添加客戶
+        function addClient() {
+            window.location.href = '#onboarding';
+            startNewClient();
+        }
+
+        // 登出
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = 'login.html';
+        }
+
+        // 頁面加載
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>

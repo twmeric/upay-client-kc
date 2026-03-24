@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付成功 - King-Chicken</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+            --success: #16a34a;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .success-container {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px -15px rgba(44, 36, 25, 0.15);
+            width: 100%;
+            max-width: 480px;
+            padding: 60px 40px;
+            text-align: center;
+            border: 1px solid var(--beige);
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            height: 80px;
+            width: auto;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--success), #15803d);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            font-size: 40px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(22, 163, 74, 0.3);
+        }
+
+        .success-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .success-message {
+            font-size: 16px;
+            color: var(--text-medium);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .order-info {
+            background: var(--cream);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .order-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .order-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .order-info-label {
+            color: var(--text-light);
+        }
+
+        .order-info-value {
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+
+        .order-info-value.amount {
+            color: var(--hermes-orange);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--hermes-orange), var(--hermes-dark));
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(255, 107, 0, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 107, 0, 0.4);
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        @media (max-width: 480px) {
+            .success-container {
+                padding: 40px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="logo">
+            <img src="logo.png" alt="King-Chicken">
+        </div>
+
+        <div class="success-icon">✓</div>
+
+        <h1 class="success-title">支付成功</h1>
+        <p class="success-message">感謝您的支付，訂單已確認完成。</p>
+
+        <div class="order-info">
+            <div class="order-info-item">
+                <span class="order-info-label">訂單編號</span>
+                <span class="order-info-value" id="orderNo">-</span>
+            </div>
+            <div class="order-info-item">
+                <span class="order-info-label">支付金額</span>
+                <span class="order-info-value amount" id="amount">-</span>
+            </div>
+            <div class="order-info-item">
+                <span class="order-info-label">支付時間</span>
+                <span class="order-info-value" id="time">-</span>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-btn">返回首頁</a>
+
+        <div class="footer">
+            如有問題請聯繫客服<br>
+            King-Chicken 支付系統
+        </div>
+    </div>
+
+    <script>
+        // 從 URL 參數獲取訂單信息
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNo = urlParams.get('orderNo') || urlParams.get('mchOrderNo');
+        const amount = urlParams.get('amount');
+        const successTime = urlParams.get('successTime');
+
+        if (orderNo) {
+            document.getElementById('orderNo').textContent = orderNo;
+        }
+
+        if (amount) {
+            document.getElementById('amount').textContent = 'HK$ ' + parseFloat(amount).toFixed(2);
+        }
+
+        if (successTime) {
+            const date = new Date(parseInt(successTime));
+            document.getElementById('time').textContent = date.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+        } else {
+            document.getElementById('time').textContent = new Date().toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+        }
+
+        // 通知服務器訂單已完成（可選）
+        if (orderNo) {
+            fetch(`https://payment-api.jimsbond007.workers.dev/api/v1/payments/${orderNo}`)
+                .then(r => r.json())
+                .then(data => console.log('Payment status:', data))
+                .catch(e => console.error('Error checking payment:', e));
+        }
+    </script>
+</body>
+</html>
