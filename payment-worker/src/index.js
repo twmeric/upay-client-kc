@@ -2209,13 +2209,45 @@ async function handleClientAdminLogin(request, env, client, corsOrigin) {
 
 async function handleClientAdminTransactions(request, env, client, corsOrigin) {
   try {
+    // 獲取查詢參數
+    const url = new URL(request.url);
+    const startDate = url.searchParams.get('startDate');
+    const endDate = url.searchParams.get('endDate');
+    const status = url.searchParams.get('status');
+    const search = url.searchParams.get('search');
+    
+    let query = 'SELECT * FROM transactions WHERE merchant_id = ?';
+    const params = [client.code];
+    
+    // 日期篩選
+    if (startDate) {
+      const startTime = Math.floor(new Date(startDate).getTime() / 1000);
+      query += ' AND created_at >= ?';
+      params.push(startTime);
+    }
+    
+    if (endDate) {
+      const endTime = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+      query += ' AND created_at < ?';
+      params.push(endTime);
+    }
+    
+    // 狀態篩選
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    
+    // 搜索訂單號
+    if (search) {
+      query += ' AND order_no LIKE ?';
+      params.push(`%${search}%`);
+    }
+    
+    query += ' ORDER BY created_at DESC LIMIT 100';
+    
     // 獲取該客戶端的交易記錄
-    const transactions = await env.DB.prepare(`
-      SELECT * FROM transactions 
-      WHERE merchant_id = ? 
-      ORDER BY created_at DESC 
-      LIMIT 50
-    `).bind(client.code).all();
+    const transactions = await env.DB.prepare(query).bind(...params).all();
 
     // 處理數據格式
     const formattedData = (transactions.results || []).map(tx => ({
@@ -2277,6 +2309,7 @@ async function handleClientDbStatus(request, env, client, corsOrigin) {
   try {
     let transactionCount = 0;
     let recentTransactions = [];
+    let todayStats = { count: 0, revenue: 0, successCount: 0 };
     
     if (env.DB) {
       // 獲取交易總數
@@ -2285,11 +2318,31 @@ async function handleClientDbStatus(request, env, client, corsOrigin) {
       `).bind(client.code).first();
       transactionCount = countResult?.count || 0;
       
-      // 獲取最近5條交易
+      // 獲取最近100條交易
       const recent = await env.DB.prepare(`
-        SELECT * FROM transactions WHERE merchant_id = ? ORDER BY created_at DESC LIMIT 5
+        SELECT * FROM transactions WHERE merchant_id = ? ORDER BY created_at DESC LIMIT 100
       `).bind(client.code).all();
       recentTransactions = recent.results || [];
+      
+      // 計算今日統計
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTimestamp = Math.floor(today.getTime() / 1000);
+      
+      const todayResult = await env.DB.prepare(`
+        SELECT 
+          COUNT(*) as count,
+          SUM(amount) as revenue,
+          SUM(CASE WHEN status = 'paid' OR status = 'success' THEN 1 ELSE 0 END) as success_count
+        FROM transactions 
+        WHERE merchant_id = ? AND created_at >= ?
+      `).bind(client.code, todayTimestamp).first();
+      
+      todayStats = {
+        count: todayResult?.count || 0,
+        revenue: todayResult?.revenue || 0,
+        successCount: todayResult?.success_count || 0
+      };
     }
     
     return jsonResponse({
@@ -2297,7 +2350,8 @@ async function handleClientDbStatus(request, env, client, corsOrigin) {
       dbAvailable: !!env.DB,
       clientCode: client.code,
       transactionCount: transactionCount,
-      recentTransactions: recentTransactions
+      recentTransactions: recentTransactions,
+      todayStats: todayStats
     }, 200, corsOrigin);
   } catch (error) {
     console.error('[DbStatus] Error:', error);

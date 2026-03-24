@@ -472,6 +472,10 @@
                     <span class="brand-subtitle">Admin Portal</span>
                 </div>
             </div>
+            <nav class="nav-menu" style="display: flex; gap: 8px;">
+                <a href="admin.html" class="nav-link active" style="padding: 10px 20px; background: var(--hermes-orange); color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">交易記錄</a>
+                <a href="boss-report.html" class="nav-link" style="padding: 10px 20px; background: var(--cream-dark); color: var(--text-medium); border-radius: 8px; text-decoration: none; font-weight: 500; border: 1px solid var(--beige);">老闆摯愛</a>
+            </nav>
             <div class="header-actions">
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">A</div>
@@ -595,7 +599,71 @@
             document.getElementById('endDate').value = today;
             const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             document.getElementById('startDate').value = lastWeek;
+            
+            // 綁定篩選事件
+            document.getElementById('startDate').addEventListener('change', filterTransactions);
+            document.getElementById('endDate').addEventListener('change', filterTransactions);
+            document.getElementById('statusFilter').addEventListener('change', filterTransactions);
+            document.getElementById('searchInput').addEventListener('input', debounce(filterTransactions, 300));
         });
+
+        // 防抖函數
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 篩選交易
+        let allTransactions = [];
+        
+        async function filterTransactions() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const status = document.getElementById('statusFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/transactions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                let transactions = data.transactions || [];
+                
+                // 日期篩選
+                if (startDate) {
+                    const start = new Date(startDate).getTime();
+                    transactions = transactions.filter(tx => new Date(tx.createdAt).getTime() >= start);
+                }
+                if (endDate) {
+                    const end = new Date(endDate).getTime() + 86400000;
+                    transactions = transactions.filter(tx => new Date(tx.createdAt).getTime() <= end);
+                }
+                
+                // 狀態篩選
+                if (status) {
+                    transactions = transactions.filter(tx => tx.status === status);
+                }
+                
+                // 搜索訂單號
+                if (search) {
+                    transactions = transactions.filter(tx => 
+                        (tx.orderId || tx.id).toLowerCase().includes(search)
+                    );
+                }
+                
+                renderTransactions(transactions);
+            } catch (error) {
+                console.error('Error filtering:', error);
+            }
+        }
 
         async function loadTransactions() {
             try {
@@ -678,10 +746,47 @@
         }
 
         async function loadStats() {
-            // 模擬數據，實際應從 API 獲取
-            document.getElementById('todayRevenue').textContent = 'HK$ 12,580.00';
-            document.getElementById('todayCount').textContent = '47';
-            document.getElementById('successRate').textContent = '98.5%';
+            try {
+                const response = await fetch(`${API_BASE}/admin/db-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 計算今日統計
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    let todayRevenue = 0;
+                    let todayCount = 0;
+                    let successCount = 0;
+                    
+                    if (data.recentTransactions) {
+                        data.recentTransactions.forEach(tx => {
+                            const txDate = new Date(tx.created_at * 1000);
+                            if (txDate >= today) {
+                                todayCount++;
+                                todayRevenue += (tx.amount / 100);
+                                if (tx.status === 'paid' || tx.status === 'success') {
+                                    successCount++;
+                                }
+                            }
+                        });
+                    }
+                    
+                    const successRate = todayCount > 0 ? ((successCount / todayCount) * 100).toFixed(1) : '0.0';
+                    
+                    document.getElementById('todayRevenue').textContent = `HK$ ${todayRevenue.toLocaleString('zh-HK', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('todayCount').textContent = todayCount;
+                    document.getElementById('successRate').textContent = `${successRate}%`;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('todayRevenue').textContent = 'HK$ 0.00';
+                document.getElementById('todayCount').textContent = '0';
+                document.getElementById('successRate').textContent = '0%';
+            }
         }
 
         function refreshData() {
