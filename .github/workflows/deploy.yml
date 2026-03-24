@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages (with Environment)
+name: Deploy to Cloudflare
 
 on:
   push:
@@ -6,11 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  deploy-pages:
     runs-on: ubuntu-latest
-    # 指定使用 Environment secrets
-    environment: Cloudflare
-    name: Deploy Frontend
+    name: Deploy Frontend to Pages
     
     steps:
       - uses: actions/checkout@v4
@@ -23,10 +21,10 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@3
 
-      - name: Deploy via Wrangler
+      - name: Deploy to Cloudflare Pages
         env:
-          # 使用 Environment secrets
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           cd UpayClient/_KC
           wrangler pages deploy . --project-name=upay-client-kc --branch=main --commit-dirty=true
@@ -35,8 +33,12 @@ jobs:
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ 部署成功！"
+            echo "✅ Frontend deployed successfully!"
             echo "URL: https://upay-client-kc.pages.dev"
           else
-            echo "❌ 部署失敗"
+            echo "❌ Frontend deployment failed"
+            echo "Please check:"
+            echo "1. CLOUDFLARE_API_TOKEN is set in Repository secrets"
+            echo "2. CLOUDFLARE_ACCOUNT_ID is set in Repository secrets"
+            echo "3. upay-client-kc project exists in Cloudflare Pages"
           fi
