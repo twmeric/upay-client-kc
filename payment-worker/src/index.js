@@ -2153,12 +2153,16 @@ async function handleClientAdminLogin(request, env, client, corsOrigin) {
       }, 400, corsOrigin);
     }
 
-    // 簡單驗證（實際應該從數據庫驗證）
-    // 默認賬號: mimichu / kingchicken2024
-    const validUsername = 'mimichu';
-    const validPassword = 'kingchicken2024';
+    // 管理員賬號列表
+    const adminUsers = [
+      { id: 1, username: 'mimichu', password: 'kingchicken2024', name: '咪咪姐', role: 'admin' },
+      { id: 2, username: 'mimichu', password: '98113210', name: '咪咪姐', role: 'admin' }
+    ];
 
-    if (username !== validUsername || password !== validPassword) {
+    // 查找匹配的用戶
+    const user = adminUsers.find(u => u.username === username && u.password === password);
+
+    if (!user) {
       return jsonResponse({ 
         success: false, 
         error: 'Invalid username or password' 
@@ -2172,10 +2176,10 @@ async function handleClientAdminLogin(request, env, client, corsOrigin) {
       success: true,
       token: token,
       user: {
-        id: 1,
-        username: validUsername,
-        name: '咪咪姐',
-        role: 'admin'
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role
       }
     }, 200, corsOrigin);
 
