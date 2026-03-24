@@ -1252,7 +1252,8 @@ async function getMerchantByApiKey(env, apiKey) {
 async function saveTransaction(env, data) {
   try {
     if (env.DB) {
-      await env.DB.prepare(`
+      console.log('[SaveTransaction] Saving:', JSON.stringify(data));
+      const result = await env.DB.prepare(`
         INSERT INTO transactions (order_no, merchant_id, amount, currency, pay_type, status, raw_response, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
@@ -1265,9 +1266,13 @@ async function saveTransaction(env, data) {
         data.rawResponse,
         Math.floor(Date.now() / 1000)
       ).run();
+      console.log('[SaveTransaction] Saved successfully, meta:', JSON.stringify(result));
+    } else {
+      console.error('[SaveTransaction] ERROR: env.DB is not available');
     }
   } catch (error) {
-    console.log('[DB] Warning:', error.message);
+    console.error('[SaveTransaction] ERROR:', error.message);
+    console.error('[SaveTransaction] Stack:', error.stack);
   }
 }
 
@@ -1631,6 +1636,16 @@ async function handleClientAPI(request, env, clientCode, subPath, method, origin
   // 管理員交易記錄查詢
   if (subPath === '/admin/transactions' && method === 'GET') {
     return await handleClientAdminTransactions(request, env, client, corsOrigin);
+  }
+
+  // 管理員清空所有交易記錄
+  if (subPath === '/admin/clear-data' && method === 'POST') {
+    return await handleClientClearData(request, env, client, corsOrigin);
+  }
+
+  // 調試：獲取數據庫狀態
+  if (subPath === '/admin/db-status' && method === 'GET') {
+    return await handleClientDbStatus(request, env, client, corsOrigin);
   }
 
   return jsonResponse({ error: 'Client API endpoint not found', path: subPath }, 404, corsOrigin);
@@ -2224,5 +2239,68 @@ async function handleClientAdminTransactions(request, env, client, corsOrigin) {
       success: false, 
       error: 'Failed to fetch transactions' 
     }, 500, corsOrigin);
+  }
+}
+
+
+async function handleClientClearData(request, env, client, corsOrigin) {
+  try {
+    // 驗證管理員權限（簡單檢查）
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return jsonResponse({ success: false, error: 'Unauthorized' }, 401, corsOrigin);
+    }
+
+    // 清空該客戶端的所有交易記錄
+    if (env.DB) {
+      const result = await env.DB.prepare(`
+        DELETE FROM transactions WHERE merchant_id = ?
+      `).bind(client.code).run();
+      
+      console.log('[ClearData] Deleted transactions for client:', client.code, 'Result:', JSON.stringify(result));
+      
+      return jsonResponse({
+        success: true,
+        message: 'All transaction data cleared successfully',
+        deletedCount: result.meta?.changes || 0
+      }, 200, corsOrigin);
+    } else {
+      return jsonResponse({ success: false, error: 'Database not available' }, 500, corsOrigin);
+    }
+  } catch (error) {
+    console.error('[ClearData] Error:', error);
+    return jsonResponse({ success: false, error: error.message }, 500, corsOrigin);
+  }
+}
+
+async function handleClientDbStatus(request, env, client, corsOrigin) {
+  try {
+    let transactionCount = 0;
+    let recentTransactions = [];
+    
+    if (env.DB) {
+      // 獲取交易總數
+      const countResult = await env.DB.prepare(`
+        SELECT COUNT(*) as count FROM transactions WHERE merchant_id = ?
+      `).bind(client.code).first();
+      transactionCount = countResult?.count || 0;
+      
+      // 獲取最近5條交易
+      const recent = await env.DB.prepare(`
+        SELECT * FROM transactions WHERE merchant_id = ? ORDER BY created_at DESC LIMIT 5
+      `).bind(client.code).all();
+      recentTransactions = recent.results || [];
+    }
+    
+    return jsonResponse({
+      success: true,
+      dbAvailable: !!env.DB,
+      clientCode: client.code,
+      transactionCount: transactionCount,
+      recentTransactions: recentTransactions
+    }, 200, corsOrigin);
+  } catch (error) {
+    console.error('[DbStatus] Error:', error);
+    return jsonResponse({ success: false, error: error.message }, 500, corsOrigin);
   }
 }

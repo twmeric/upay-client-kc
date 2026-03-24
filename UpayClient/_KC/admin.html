@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>King-Chicken 管理後台</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
     <style>
         * {
             margin: 0;
@@ -29,7 +29,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
             background: var(--cream);
             min-height: 100vh;
         }
@@ -79,7 +79,7 @@
         }
 
         .brand-name {
-            font-family: 'Playfair Display', serif;
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
             font-size: 20px;
             font-weight: 600;
             color: var(--text-dark);
@@ -211,7 +211,7 @@
         }
 
         .stat-value {
-            font-family: 'Playfair Display', serif;
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
             font-size: 28px;
             font-weight: 600;
             color: var(--text-dark);
@@ -256,7 +256,7 @@
         }
 
         .card-title {
-            font-family: 'Playfair Display', serif;
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
             font-size: 17px;
             font-weight: 600;
             color: var(--text-dark);
@@ -375,7 +375,7 @@
         }
 
         .amount-cell {
-            font-family: 'Playfair Display', serif;
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
             font-weight: 600;
             color: var(--hermes-orange);
         }
@@ -526,7 +526,9 @@
                     <div class="card-title">交易記錄</div>
                     <div class="card-actions">
                         <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
+                        <button class="btn btn-secondary" onclick="checkDbStatus()">🔍 檢查數據</button>
                         <button class="btn btn-primary" onclick="exportData()">📥 導出</button>
+                        <button class="btn" style="background: #dc2626; color: white;" onclick="clearAllData()">🗑️ 清空數據</button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -691,6 +693,52 @@
             alert('導出功能開發中...');
         }
 
+        async function checkDbStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/db-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                console.log('DB Status:', data);
+                alert(`數據庫狀態：\n- 數據庫可用：${data.dbAvailable}\n- 交易記錄數：${data.transactionCount}\n- 客戶端：${data.clientCode}`);
+            } catch (error) {
+                console.error('Error checking DB status:', error);
+                alert('檢查數據庫狀態失敗');
+            }
+        }
+
+        async function clearAllData() {
+            if (!confirm('⚠️ 警告：確定要清空所有交易數據嗎？此操作不可恢復！')) {
+                return;
+            }
+            
+            if (!confirm('再次確認：真的要刪除所有交易記錄嗎？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/clear-data`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ 數據已清空！\n刪除記錄數：${data.deletedCount || 0}`);
+                    refreshData();
+                } else {
+                    alert('❌ 清空失敗：' + data.error);
+                }
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                alert('清空數據失敗：' + error.message);
+            }
+        }
+
         function viewDetail(id) {
             alert('訂單詳情：' + id);
         }
@@ -703,3 +751,4 @@
     </script>
 </body>
 </html>
+
