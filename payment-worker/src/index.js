@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EasyLink Payment Gateway - Unified API
  * 統�??��? API - ?��?多�??�平??
  * Version: 3.0 - Unified API
@@ -1689,7 +1689,7 @@ async function createClientPayment(request, env, client, corsOrigin) {
     
     // 根據文檔: amount 是原始金額（不是分）
     const signParams = {
-      amount: numAmount.toString(),
+      amount: amountInCents.toString(),
       appId: client.appId,
       body: subject || 'Payment',
       currency: 'HKD',
@@ -2127,3 +2127,5 @@ async function sendWhatsAppMessage(phone, message) {
     return { success: false, error: error.message };
   }
 }
+
+
