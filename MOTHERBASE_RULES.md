@@ -203,5 +203,49 @@ curl -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
 
 ---
 
-**最后更新**: 2026-03-20  
-**版本**: v1.0
+## 🔐 API Token 管理規範
+
+### Super API Token
+
+**Token**: `cfut_U9fdeBzWaVKBK83pfPZAtmufVQnJqtCTKLQj53UFad7fbeca`  
+**權限**: 完整帳號權限 (Workers, Pages, D1, DNS, R2, etc.)  
+**存儲位置**: `.CLOUDFLARE_SUPER_TOKEN`  
+**使用範圍**: 母機團隊統一部署使用
+
+#### 使用方式
+
+```powershell
+# 方式 1: 環境變量
+$env:CLOUDFLARE_API_TOKEN = "cfut_U9fdeBzWaVKBK83pfPZAtmufVQnJqtCTKLQj53UFad7fbeca"
+wrangler deploy
+
+# 方式 2: 命令行參數  
+wrangler deploy --token cfut_U9fdeBzWaVKBK83pfPZAtmufVQnJqtCTKLQj53UFad7fbeca
+
+# 方式 3: 從文件讀取
+$token = (Get-Content .\.CLOUDFLARE_SUPER_TOKEN | Select-String "Token=").ToString().Split("=")[1]
+$env:CLOUDFLARE_API_TOKEN = $token
+```
+
+#### Token 安全規範
+
+1. **絕對不要**將 Token 提交到 Git 倉庫
+2. **絕對不要**在代碼中硬編碼 Token
+3. Token 文件已加入 `.gitignore`
+4. 僅限母機團隊核心成員使用
+5. 每 90 天建議輪換一次 Token
+
+#### Token 輪換流程
+
+```markdown
+1. 在 Cloudflare Dashboard 創建新 Token
+2. 更新 .CLOUDFLARE_SUPER_TOKEN 文件
+3. 測試新 Token 部署
+4. 刪除舊 Token
+5. 通知團隊成員更新本地文件
+```
+
+---
+
+**最后更新**: 2026-03-22  
+**版本**: v1.1

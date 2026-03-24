@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import type { Transaction, Merchant, DashboardStats } from "../types/payment";
-import { STATUS_MAP, STATUS_COLORS } from "../types/payment";
+import { STATUS_MAP, STATUS_COLORS, PAY_TYPES } from "../types/payment";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend,
 } from "recharts";
@@ -14,13 +14,14 @@ export default function AdminPage() {
 
   // Dashboard
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "transactions" | "merchants">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "transactions" | "boss" | "merchants">("dashboard");
 
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnTotal, setTxnTotal] = useState(0);
   const [txnPage, setTxnPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPayType, setFilterPayType] = useState<string>("all");
   const [filterMchNo, setFilterMchNo] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -28,6 +29,17 @@ export default function AdminPage() {
 
   // Merchants
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+
+  // Boss Config
+  const [bossConfig, setBossConfig] = useState({
+    enabled: false,
+    time: "22:00",
+    includeTrend: false,
+    includeDetail: false,
+    recipients: [] as { phone: string; name: string }[]
+  });
+  const [bossConfigLoading, setBossConfigLoading] = useState(false);
+  const [bossConfigMessage, setBossConfigMessage] = useState("");
 
   useEffect(() => {
     const check = async () => {
@@ -62,6 +74,7 @@ export default function AdminPage() {
     try {
       const params = new URLSearchParams({ page: txnPage.toString(), limit: "15" });
       if (filterStatus !== "all") params.set("status", filterStatus);
+      if (filterPayType !== "all") params.set("payType", filterPayType);
       if (filterMchNo) params.set("mchNo", filterMchNo);
       if (filterDateFrom) params.set("dateFrom", filterDateFrom);
       if (filterDateTo) params.set("dateTo", filterDateTo);
@@ -75,7 +88,7 @@ export default function AdminPage() {
     } finally {
       setTxnLoading(false);
     }
-  }, [txnPage, filterStatus, filterMchNo, filterDateFrom, filterDateTo]);
+  }, [txnPage, filterStatus, filterPayType, filterMchNo, filterDateFrom, filterDateTo]);
 
   const loadMerchants = useCallback(async () => {
     try {
@@ -91,6 +104,7 @@ export default function AdminPage() {
     if (checking || !user) return;
     if (activeTab === "dashboard") loadStats();
     if (activeTab === "transactions") loadTransactions();
+    if (activeTab === "boss") loadBossConfig();
     if (activeTab === "merchants") loadMerchants();
   }, [checking, user, activeTab, loadStats, loadTransactions, loadMerchants]);
 
@@ -129,6 +143,69 @@ export default function AdminPage() {
   const handleLogout = async () => {
     await client.auth.signOut();
     navigate("/login", { replace: true });
+  };
+
+  // Boss Config Functions
+  const loadBossConfig = useCallback(async () => {
+    try {
+      const res = await client.api.fetch("/api/boss/config");
+      const data = await res.json();
+      setBossConfig({
+        enabled: data.enabled ?? false,
+        time: data.time ?? "22:00",
+        includeTrend: data.includeTrend ?? false,
+        includeDetail: data.includeDetail ?? false,
+        recipients: data.recipients ?? []
+      });
+    } catch (e) {
+      console.error("Failed to load boss config", e);
+    }
+  }, []);
+
+  const saveBossConfig = async () => {
+    setBossConfigLoading(true);
+    setBossConfigMessage("");
+    try {
+      const res = await client.api.fetch("/api/boss/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bossConfig)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBossConfigMessage("✓ 配置保存成功");
+        await loadBossConfig();
+      } else {
+        setBossConfigMessage(`✗ 保存失败: ${data.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      setBossConfigMessage("✗ 保存失败，请检查网络");
+    } finally {
+      setBossConfigLoading(false);
+    }
+  };
+
+  const addRecipient = () => {
+    setBossConfig(prev => ({
+      ...prev,
+      recipients: [...prev.recipients, { phone: "", name: "" }]
+    }));
+  };
+
+  const updateRecipient = (index: number, field: "phone" | "name", value: string) => {
+    setBossConfig(prev => ({
+      ...prev,
+      recipients: prev.recipients.map((r, i) => 
+        i === index ? { ...r, [field]: value } : r
+      )
+    }));
+  };
+
+  const removeRecipient = (index: number) => {
+    setBossConfig(prev => ({
+      ...prev,
+      recipients: prev.recipients.filter((_, i) => i !== index)
+    }));
   };
 
   if (checking) {
@@ -170,6 +247,7 @@ export default function AdminPage() {
           {([
             { key: "dashboard", label: "儀表板" },
             { key: "transactions", label: "交易流水" },
+            { key: "boss", label: "老闆摯愛" },
             { key: "merchants", label: "商戶管理" },
           ] as const).map((tab) => (
             <button
@@ -266,6 +344,19 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">支付方式</label>
+                  <select
+                    value={filterPayType}
+                    onChange={(e) => { setFilterPayType(e.target.value); setTxnPage(1); }}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                  >
+                    <option value="all">全部</option>
+                    {PAY_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">商戶號</label>
                   <input
                     value={filterMchNo}
@@ -293,7 +384,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <button
-                  onClick={() => { setFilterStatus("all"); setFilterMchNo(""); setFilterDateFrom(""); setFilterDateTo(""); setTxnPage(1); }}
+                  onClick={() => { setFilterStatus("all"); setFilterPayType("all"); setFilterMchNo(""); setFilterDateFrom(""); setFilterDateTo(""); setTxnPage(1); }}
                   className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   重置
@@ -334,7 +425,7 @@ export default function AdminPage() {
                           <td className="px-4 py-3 text-right font-semibold text-gray-900">
                             {(t.amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{t.payType || "-"}</td>
+                          <td className="px-4 py-3 text-gray-600">{PAY_TYPES.find(pt => pt.value === t.payType)?.label || t.payType || "-"}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[t.status] || "bg-gray-100 text-gray-700"}`}>
                               {STATUS_MAP[t.status] || "未知"}
@@ -375,6 +466,123 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ BOSS CONFIG ═══════════ */}
+        {activeTab === "boss" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">老闆日報配置</h2>
+              
+              {bossConfigMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm ${
+                  bossConfigMessage.startsWith("✓") 
+                    ? "bg-green-50 text-green-700" 
+                    : "bg-red-50 text-red-700"
+                }`}>
+                  {bossConfigMessage}
+                </div>
+              )}
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">收件人列表</label>
+                <div className="space-y-3">
+                  {bossConfig.recipients.map((recipient, index) => (
+                    <div key={index} className="flex gap-3">
+                      <input
+                        type="text"
+                        placeholder="名稱 (可選)"
+                        value={recipient.name}
+                        onChange={(e) => updateRecipient(index, "name", e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                      />
+                      <input
+                        type="text"
+                        placeholder="電話號碼 (如: 85291234567)"
+                        value={recipient.phone}
+                        onChange={(e) => updateRecipient(index, "phone", e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                      />
+                      <button
+                        onClick={() => removeRecipient(index)}
+                        className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        刪除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={addRecipient}
+                  className="mt-3 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  + 添加收件人
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">每日發送時間</label>
+                <input
+                  type="time"
+                  value={bossConfig.time}
+                  onChange={(e) => setBossConfig(prev => ({ ...prev, time: e.target.value }))}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                />
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bossConfig.enabled}
+                    onChange={(e) => setBossConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">啟用自動發送</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bossConfig.includeTrend}
+                    onChange={(e) => setBossConfig(prev => ({ ...prev, includeTrend: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">包含本週對比趨勢</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bossConfig.includeDetail}
+                    onChange={(e) => setBossConfig(prev => ({ ...prev, includeDetail: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">包含支付方式明細</span>
+                </label>
+              </div>
+
+              <button
+                onClick={saveBossConfig}
+                disabled={bossConfigLoading}
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-50"
+              >
+                {bossConfigLoading ? "保存中..." : "保存配置"}
+              </button>
+
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  當前狀態: 
+                  <span className={`ml-2 font-medium ${bossConfig.enabled ? "text-green-600" : "text-gray-500"}`}>
+                    {bossConfig.enabled ? "✓ 已啟用" : "○ 已停用"}
+                  </span>
+                  {bossConfig.enabled && (
+                    <span className="ml-2">
+                      - 將於每日 {bossConfig.time} 發送到 {bossConfig.recipients.length} 位收件人
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
         )}

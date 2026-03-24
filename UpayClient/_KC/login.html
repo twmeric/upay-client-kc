@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登錄 - King-Chicken 管理後台</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>King-Chicken 管理登入</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,9 +12,22 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,24 +36,37 @@
         }
 
         .login-container {
-            background: #1e1e2f;
+            background: var(--white);
             border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                0 20px 60px -15px rgba(44, 36, 25, 0.15),
+                0 1px 3px rgba(44, 36, 25, 0.1);
             width: 100%;
             max-width: 420px;
             overflow: hidden;
-            border: 1px solid rgba(255, 107, 0, 0.1);
+            border: 1px solid rgba(201, 169, 97, 0.2);
         }
 
         .header {
-            background: linear-gradient(135deg, #FF6B00 0%, #E55A00 100%);
-            color: white;
-            padding: 40px 32px;
+            background: linear-gradient(135deg, var(--cream-dark) 0%, var(--beige) 100%);
+            padding: 50px 32px;
             text-align: center;
+            border-bottom: 3px solid var(--hermes-orange);
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold), var(--hermes-orange));
         }
 
         .logo {
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .logo img {
@@ -48,16 +74,48 @@
             width: auto;
             display: block;
             margin: 0 auto;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .brand-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-dark);
+            letter-spacing: 2px;
+            margin-top: 8px;
         }
 
         .subtitle {
-            opacity: 0.9;
-            font-size: 16px;
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 4px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
         }
 
-        .content {
+        .form-section {
             padding: 40px 32px;
-            background: #1e1e2f;
+        }
+
+        .form-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 28px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .form-title::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold));
+            margin: 12px auto 0;
+            border-radius: 2px;
         }
 
         .form-group {
@@ -66,49 +124,69 @@
 
         .form-label {
             display: block;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-medium);
             margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper {
+            position: relative;
         }
 
         .form-input {
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 18px;
+            border: 2px solid var(--beige);
             border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.2s;
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
+            background: var(--white);
+            font-size: 15px;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #FF6B00;
-            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.08);
         }
 
         .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-light);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 18px;
         }
 
         .login-button {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #FF6B00 0%, #E55A00 100%);
+            padding: 18px;
+            background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-dark) 100%);
             color: white;
             border: none;
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 8px;
+            box-shadow: 0 4px 16px rgba(255, 107, 0, 0.3);
         }
 
         .login-button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(255, 107, 0, 0.4);
+            box-shadow: 0 8px 24px rgba(255, 107, 0, 0.4);
         }
 
         .login-button:disabled {
@@ -116,14 +194,31 @@
             cursor: not-allowed;
         }
 
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         .error-message {
-            background: #fee2e2;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
             color: #dc2626;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 24px;
             font-size: 14px;
             display: none;
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
         .error-message.show {
@@ -136,55 +231,87 @@
         }
 
         .back-link a {
-            color: #ff9500;
+            color: var(--text-light);
             text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
+            transition: color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .back-link a:hover {
-            text-decoration: underline;
+            color: var(--hermes-orange);
         }
 
-        .loading {
-            display: inline-block;
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
-            vertical-align: middle;
+        .footer {
+            text-align: center;
+            padding: 20px 32px;
+            background: var(--cream-dark);
+            font-size: 12px;
+            color: var(--text-light);
+            border-top: 1px solid var(--beige);
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        @media (max-width: 480px) {
+            .login-container {
+                border-radius: 0;
+                max-width: 100%;
+            }
+            
+            body {
+                padding: 0;
+                background: var(--white);
+            }
+            
+            .form-section {
+                padding: 32px 24px;
+            }
+            
+            .header {
+                padding: 40px 20px;
+            }
+            
+            .logo img {
+                height: 60px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="header">
-            <div class="logo"><img src="logo.png" alt="King-Chicken"></div>
-            <div class="subtitle">管理後台登錄</div>
+            <div class="logo">
+                <img src="logo.png" alt="King-Chicken">
+            </div>
+            <div class="brand-name">KING-CHICKEN</div>
+            <div class="subtitle">Admin Portal</div>
         </div>
 
-        <div class="content">
+        <div class="form-section">
+            <div class="form-title">管理後台登入</div>
+
             <div id="errorMessage" class="error-message"></div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)">
+            <form id="loginForm">
                 <div class="form-group">
                     <label class="form-label">用戶名</label>
-                    <input type="text" class="form-input" id="username" placeholder="輸入用戶名" required>
+                    <div class="input-wrapper">
+                        <input type="text" class="form-input" id="username" placeholder="輸入用戶名" required>
+                        <span class="input-icon">👤</span>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">密碼</label>
-                    <input type="password" class="form-input" id="password" placeholder="輸入密碼" required>
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" id="password" placeholder="輸入密碼" required>
+                        <span class="input-icon">🔒</span>
+                    </div>
                 </div>
 
-                <button type="submit" class="login-button" id="loginButton">
-                    <span>登錄</span>
+                <button type="submit" class="login-button" id="loginBtn">
+                    <span>登入</span>
                 </button>
             </form>
 
@@ -192,50 +319,74 @@
                 <a href="index.html">← 返回支付頁面</a>
             </div>
         </div>
+
+        <div class="footer">
+            King-Chicken 管理後台系統 · 安全登入保障
+        </div>
     </div>
 
     <script>
-        // 預設登錄憑證
-        const USERS = {
-            'admin': 'kingchicken123',
-            'mimichu': '98113210'
-        };
-
-        // 檢查是否已登錄
-        if (localStorage.getItem('kc_admin_logged_in')) {
+        // 驗證是否已登入
+        const token = localStorage.getItem('adminToken');
+        if (token) {
             window.location.href = 'admin.html';
         }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // 簡單驗證
+            if (!username || !password) {
+                showError('請輸入用戶名和密碼');
+                return;
+            }
+
+            // 顯示載入狀態
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span>登入中</span><span class="loading"></span>';
+
+            try {
+                // 這裡調用登入 API
+                const API_BASE = 'https://payment-api.jimsbond007.workers.dev/api/v1/client/KC';
+                
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // 登入成功
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminUser', JSON.stringify(data.user));
+                    window.location.href = 'admin.html';
+                } else {
+                    showError(data.error || '登入失敗，請檢查用戶名和密碼');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<span>登入</span>';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('登入失敗，請稍後重試');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>登入</span>';
+            }
+        });
 
         function showError(message) {
             const errorEl = document.getElementById('errorMessage');
             errorEl.textContent = message;
             errorEl.classList.add('show');
             setTimeout(() => errorEl.classList.remove('show'), 5000);
-        }
-
-        function handleLogin(event) {
-            event.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const button = document.getElementById('loginButton');
-
-            button.disabled = true;
-            button.innerHTML = '<span class="loading"></span><span>登錄中...</span>';
-
-            // 簡單驗證
-            setTimeout(() => {
-                if (USERS[username] && USERS[username] === password) {
-                    // 登錄成功
-                    localStorage.setItem('kc_admin_logged_in', 'true');
-                    localStorage.setItem('kc_admin_user', username);
-                    window.location.href = 'admin.html';
-                } else {
-                    showError('用戶名或密碼錯誤');
-                    button.disabled = false;
-                    button.innerHTML = '<span>登錄</span>';
-                }
-            }, 500);
         }
     </script>
 </body>

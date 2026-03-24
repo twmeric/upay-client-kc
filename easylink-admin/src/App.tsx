@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Bell,
+  Bot,
   // User,
   // ChevronDown,
   // Plus
@@ -21,6 +22,8 @@ import PlatformTransactions from './pages/PlatformTransactions';
 import PlatformWhatsApp from './pages/PlatformWhatsApp';
 import PlatformSettings from './pages/PlatformSettings';
 import Login from './pages/Login';
+import AIArchitect from './components/AIArchitect';
+import type { AIAction } from './types/ai-architect';
 
 export type Page = 'dashboard' | 'merchants' | 'merchant-detail' | 'transactions' | 'whatsapp' | 'settings';
 
@@ -83,6 +86,8 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAIArchitectOpen, setIsAIArchitectOpen] = useState(false);
+  const [aiNotification, setAiNotification] = useState<{message: string, level: string} | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('platform_admin_token');
@@ -118,6 +123,31 @@ export default function App() {
     localStorage.removeItem('platform_admin_user');
     setIsAuthenticated(false);
     setUser(null);
+  };
+
+  const handleAINavigate = (page: string) => {
+    setCurrentPage(page as Page);
+    // If navigating to merchants and we have a selected merchant, reset it
+    if (page === 'merchants') {
+      setSelectedMerchant(null);
+    }
+  };
+
+  const handleAIAction = (action: AIAction) => {
+    if (!action) return;
+    
+    switch (action.type) {
+      case 'alert':
+        setAiNotification({ message: action.message, level: action.level });
+        setTimeout(() => setAiNotification(null), 5000);
+        break;
+      case 'export':
+        // Handle export action
+        console.log('Export requested:', action.format);
+        break;
+      default:
+        break;
+    }
   };
 
   const handleMerchantSelect = (merchant: any) => {
@@ -419,6 +449,91 @@ export default function App() {
           {renderPage()}
         </div>
       </main>
+
+      {/* AI Architect */}
+      <AIArchitect
+        isOpen={isAIArchitectOpen}
+        onClose={() => setIsAIArchitectOpen(false)}
+        currentPage={currentPage}
+        selectedMerchant={selectedMerchant}
+        onNavigate={handleAINavigate}
+        onAction={handleAIAction}
+      />
+
+      {/* AI Architect Floating Button */}
+      {!isAIArchitectOpen && (
+        <button
+          onClick={() => setIsAIArchitectOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FF6B00, #E55A00)',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(255, 107, 0, 0.4)',
+            transition: 'all 0.3s ease',
+            zIndex: 999,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 6px 30px rgba(255, 107, 0, 0.5)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 107, 0, 0.4)';
+          }}
+          title="EasyLink Architect AI 助手"
+        >
+          <Bot size={24} />
+        </button>
+      )}
+
+      {/* AI Notification Toast */}
+      {aiNotification && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          right: '24px',
+          padding: '1rem 1.5rem',
+          background: aiNotification.level === 'warning' ? 'rgba(245, 158, 11, 0.95)' : 
+                     aiNotification.level === 'error' ? 'rgba(239, 68, 68, 0.95)' : 
+                     'rgba(59, 130, 246, 0.95)',
+          color: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          zIndex: 1001,
+          animation: 'slideInRight 0.3s ease',
+          maxWidth: '300px',
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+            {aiNotification.level === 'warning' ? '⚠️ 警告' : 
+             aiNotification.level === 'error' ? '❌ 錯誤' : 
+             'ℹ️ 提示'}
+          </div>
+          <div style={{ fontSize: '0.875rem' }}>{aiNotification.message}</div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { createEdgeSpark } from "@edgespark/client";
 import "@edgespark/client/styles.css";
 
-const WORKER_URL = "https://staging--55cdi3nfi9dh4f92yskx.youbase.cloud";
+// 修復: 使用正確的 API 地址
+const WORKER_URL = "https://payment-api.jimsbond007.workers.dev";
 
 export const client = createEdgeSpark({ baseUrl: WORKER_URL });
 

@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-03-21T03:33:07.470Z",
+  "allPassed": true,
+  "criticalFailures": 0,
+  "results": [
+    {
+      "name": "Payments API",
+      "path": "/api/v1/payments",
+      "healthy": true,
+      "status": 204,
+      "cors": "CORS OK"
+    },
+    {
+      "name": "Public Payment Create",
+      "path": "/api/public/payment/create",
+      "healthy": true,
+      "status": 204,
+      "cors": "CORS OK"
+    },
+    {
+      "name": "V1 Public Payment Create",
+      "path": "/api/v1/public/payment/create",
+      "healthy": true,
+      "status": 204,
+      "cors": "CORS OK"
+    },
+    {
+      "name": "Transactions API",
+      "path": "/api/transactions?page=1&limit=5",
+      "healthy": true,
+      "status": 200,
+      "cors": "CORS OK"
+    },
+    {
+      "name": "Dashboard Stats",
+      "path": "/api/dashboard/stats",
+      "healthy": true,
+      "status": 200,
+      "cors": "CORS OK"
+    }
+  ],
+  "paymentFlowOk": true
+}

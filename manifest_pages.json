@@ -1,0 +1,26 @@
+﻿{
+    "manifest":  {
+                     "files":  {
+                                   "_headers":  {
+                                                    "hash":  "4f8192caef4df06ae5bf9f5670f4b31105acf14b2644c42e54909fe4cb8628d5",
+                                                    "size":  175
+                                                },
+                                   "wrangler.toml":  {
+                                                         "hash":  "a2704851aeb2a2690db9632f036d6d3be12ba42b946280aaa80ad28f82ab4e38",
+                                                         "size":  114
+                                                     },
+                                   "login.html":  {
+                                                      "hash":  "16bb4602dbe422246dcc682cebb23749ee934c7d93a009d8ff92b300ce3820c7",
+                                                      "size":  6852
+                                                  },
+                                   "index.html":  {
+                                                      "hash":  "72f4b44cf18ad74c1f9e48da780373baa48e31d8525c7aecc305d22d764fbf68",
+                                                      "size":  15823
+                                                  },
+                                   "admin.html":  {
+                                                      "hash":  "aa99bac0f7b09916886d5e0f1abd80b8562b2a82c19fde8c06d3796c606009f3",
+                                                      "size":  39694
+                                                  }
+                               }
+                 }
+}
