@@ -705,8 +705,16 @@
                 renderTransactions(data.transactions || []);
             } catch (error) {
                 console.error('Error loading transactions:', error);
-                // 顯示模擬數據
-                renderTransactions(getMockTransactions());
+                // 顯示錯誤信息
+                const tbody = document.getElementById('transactionTable');
+                const emptyState = document.getElementById('emptyState');
+                tbody.innerHTML = '';
+                emptyState.innerHTML = `<div style="color: #dc2626; padding: 20px;">
+                    <p>無法加載交易記錄</p>
+                    <p style="font-size: 12px; color: #666;">${error.message}</p>
+                    <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #FF6B00; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新頁面</button>
+                </div>`;
+                emptyState.style.display = 'block';
             }
         }
 
@@ -758,13 +766,14 @@
             return statusMap[status] || status;
         }
 
-        function getMockTransactions() {
-            return [
-                { id: 'ORD-001', orderId: 'ORD-001', amount: 500, payType: 'UP_OP', status: 'success', createdAt: new Date().toISOString() },
-                { id: 'ORD-002', orderId: 'ORD-002', amount: 1000, payType: 'ALI_H5', status: 'success', createdAt: new Date(Date.now() - 3600000).toISOString() },
-                { id: 'ORD-003', orderId: 'ORD-003', amount: 200, payType: 'WX_H5', status: 'pending', createdAt: new Date(Date.now() - 7200000).toISOString() },
-            ];
-        }
+        // 模擬數據函數 - 僅在開發測試時使用
+        // function getMockTransactions() {
+        //     return [
+        //         { id: 'ORD-001', orderId: 'ORD-001', amount: 500, payType: 'UP_OP', status: 'success', createdAt: new Date().toISOString() },
+        //         { id: 'ORD-002', orderId: 'ORD-002', amount: 1000, payType: 'ALI_H5', status: 'success', createdAt: new Date(Date.now() - 3600000).toISOString() },
+        //         { id: 'ORD-003', orderId: 'ORD-003', amount: 200, payType: 'WX_H5', status: 'pending', createdAt: new Date(Date.now() - 7200000).toISOString() },
+        //     ];
+        // }
 
         async function loadStats() {
             try {
