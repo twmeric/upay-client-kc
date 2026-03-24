@@ -1253,9 +1253,19 @@ async function saveTransaction(env, data) {
   try {
     if (env.DB) {
       console.log('[SaveTransaction] Saving:', JSON.stringify(data));
+      
+      // 從 raw_response 中提取 EasyLink 的支付訂單號 (P開頭)
+      let payOrderId = null;
+      if (data.rawResponse) {
+        try {
+          const raw = JSON.parse(data.rawResponse);
+          payOrderId = raw.data?.payOrderId || raw.payOrderId || null;
+        } catch (e) {}
+      }
+      
       const result = await env.DB.prepare(`
-        INSERT INTO transactions (order_no, merchant_id, amount, currency, pay_type, status, raw_response, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO transactions (order_no, merchant_id, amount, currency, pay_type, status, pay_order_id, raw_response, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         data.orderNo,
         data.merchantId,
@@ -1263,10 +1273,11 @@ async function saveTransaction(env, data) {
         data.currency,
         data.payType,
         data.status,
+        payOrderId,
         data.rawResponse,
         Math.floor(Date.now() / 1000)
       ).run();
-      console.log('[SaveTransaction] Saved successfully, meta:', JSON.stringify(result));
+      console.log('[SaveTransaction] Saved successfully, payOrderId:', payOrderId, 'meta:', JSON.stringify(result));
     } else {
       console.error('[SaveTransaction] ERROR: env.DB is not available');
     }
@@ -1646,6 +1657,16 @@ async function handleClientAPI(request, env, clientCode, subPath, method, origin
   // 調試：獲取數據庫狀態
   if (subPath === '/admin/db-status' && method === 'GET') {
     return await handleClientDbStatus(request, env, client, corsOrigin);
+  }
+
+  // 更新交易備註
+  if (subPath === '/admin/transactions' && method === 'PUT') {
+    return await handleUpdateTransactionRemark(request, env, client, corsOrigin);
+  }
+
+  // XLSX導出
+  if (subPath === '/admin/transactions/export' && method === 'GET') {
+    return await handleExportTransactions(request, env, client, corsOrigin);
   }
 
   return jsonResponse({ error: 'Client API endpoint not found', path: subPath }, 404, corsOrigin);
@@ -2253,11 +2274,13 @@ async function handleClientAdminTransactions(request, env, client, corsOrigin) {
     const formattedData = (transactions.results || []).map(tx => ({
       id: tx.id,
       orderId: tx.order_no,
-      amount: tx.amount / 100, // 轉換為元
+      payOrderId: tx.pay_order_id || '-',
+      amount: tx.amount / 100,
       currency: tx.currency,
       payType: tx.pay_type,
       status: tx.status,
-      createdAt: new Date(tx.created_at * 1000).toISOString()
+      remark: tx.remark || '',
+      createdAt: new Date(tx.created_at * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
     }));
 
     return jsonResponse({
@@ -2358,3 +2381,125 @@ async function handleClientDbStatus(request, env, client, corsOrigin) {
     return jsonResponse({ success: false, error: error.message }, 500, corsOrigin);
   }
 }
+
+
+// 更新交易備註
+async function handleUpdateTransactionRemark(request, env, client, corsOrigin) {
+  try {
+    const body = await request.json();
+    const { orderId, remark } = body;
+    
+    if (!orderId) {
+      return jsonResponse({ success: false, error: 'Order ID is required' }, 400, corsOrigin);
+    }
+    
+    if (env.DB) {
+      await env.DB.prepare(`
+        UPDATE transactions SET remark = ?, updated_at = ? WHERE order_no = ? AND merchant_id = ?
+      `).bind(remark || '', Math.floor(Date.now() / 1000), orderId, client.code).run();
+      
+      return jsonResponse({ success: true, message: 'Remark updated' }, 200, corsOrigin);
+    }
+    
+    return jsonResponse({ success: false, error: 'Database not available' }, 500, corsOrigin);
+  } catch (error) {
+    console.error('[UpdateRemark] Error:', error);
+    return jsonResponse({ success: false, error: error.message }, 500, corsOrigin);
+  }
+}
+
+// XLSX導出交易記錄
+async function handleExportTransactions(request, env, client, corsOrigin) {
+  try {
+    const url = new URL(request.url);
+    const startDate = url.searchParams.get('startDate');
+    const endDate = url.searchParams.get('endDate');
+    const status = url.searchParams.get('status');
+    
+    let query = 'SELECT * FROM transactions WHERE merchant_id = ?';
+    const params = [client.code];
+    
+    if (startDate) {
+      query += ' AND created_at >= ?';
+      params.push(Math.floor(new Date(startDate).getTime() / 1000));
+    }
+    if (endDate) {
+      query += ' AND created_at < ?';
+      params.push(Math.floor(new Date(endDate).getTime() / 1000) + 86400);
+    }
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const transactions = await env.DB.prepare(query).bind(...params).all();
+    
+    // 生成 XLSX XML 格式 (簡化版 Excel)
+    const rows = (transactions.results || []).map(tx => {
+      const date = new Date(tx.created_at * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+      const amount = (tx.amount / 100).toFixed(2);
+      return {
+        orderNo: tx.order_no,
+        payOrderId: tx.pay_order_id || '-',
+        date: date,
+        amount: amount,
+        currency: tx.currency,
+        payType: tx.pay_type,
+        status: tx.status,
+        remark: tx.remark || ''
+      };
+    });
+    
+    // 創建簡化的 Excel XML 格式
+    let xlsxContent = `<?xml version="1.0" encoding="UTF-8"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet">
+  <Worksheet ss:Name="交易記錄">
+    <Table>
+      <Row>
+        <Cell><Data ss:Type="String">訂單號</Data></Cell>
+        <Cell><Data ss:Type="String">支付訂單號</Data></Cell>
+        <Cell><Data ss:Type="String">時間</Data></Cell>
+        <Cell><Data ss:Type="String">金額</Data></Cell>
+        <Cell><Data ss:Type="String">幣種</Data></Cell>
+        <Cell><Data ss:Type="String">支付方式</Data></Cell>
+        <Cell><Data ss:Type="String">狀態</Data></Cell>
+        <Cell><Data ss:Type="String">備註</Data></Cell>
+      </Row>`;
+    
+    rows.forEach(row => {
+      xlsxContent += `
+      <Row>
+        <Cell><Data ss:Type="String">${row.orderNo}</Data></Cell>
+        <Cell><Data ss:Type="String">${row.payOrderId}</Data></Cell>
+        <Cell><Data ss:Type="String">${row.date}</Data></Cell>
+        <Cell><Data ss:Type="Number">${row.amount}</Data></Cell>
+        <Cell><Data ss:Type="String">${row.currency}</Data></Cell>
+        <Cell><Data ss:Type="String">${row.payType}</Data></Cell>
+        <Cell><Data ss:Type="String">${row.status}</Data></Cell>
+        <Cell><Data ss:Type="String">${row.remark}</Data></Cell>
+      </Row>`;
+    });
+    
+    xlsxContent += `
+    </Table>
+  </Worksheet>
+</Workbook>`;
+    
+    return new Response(xlsxContent, {
+      headers: {
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-Disposition': `attachment; filename="transactions_${new Date().toISOString().slice(0,10)}.xls"`,
+        'Access-Control-Allow-Origin': corsOrigin
+      }
+    });
+  } catch (error) {
+    console.error('[Export] Error:', error);
+    return jsonResponse({ success: false, error: error.message }, 500, corsOrigin);
+  }
+}
+
+
+
+
