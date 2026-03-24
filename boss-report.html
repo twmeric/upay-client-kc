@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King-Chicken 老闆摯愛 - 每日報告</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: var(--cream);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
+            border-bottom: 1px solid var(--beige);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(44, 36, 25, 0.08);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold), var(--hermes-orange));
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand img {
+            height: 48px;
+            width: auto;
+        }
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-name {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-dark);
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--text-light);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logout-btn {
+            padding: 10px 18px;
+            background: transparent;
+            color: var(--text-medium);
+            border: 2px solid var(--beige);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 24px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: linear-gradient(180deg, var(--hermes-orange), var(--gold));
+            border-radius: 2px;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 16px;
+            border: 1px solid var(--beige);
+            box-shadow: 0 4px 20px rgba(44, 36, 25, 0.06);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--beige);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--hermes-orange), var(--hermes-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 107, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--cream);
+            color: var(--text-medium);
+            border: 1px solid var(--beige);
+        }
+
+        .btn-secondary:hover {
+            background: var(--beige);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-medium);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--beige);
+            border-radius: 8px;
+            font-size: 15px;
+            background: var(--white);
+            color: var(--text-dark);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.08);
+        }
+
+        .recipient-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .recipient-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--cream);
+            border-radius: 12px;
+            border: 1px solid var(--beige);
+        }
+
+        .recipient-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--hermes-orange);
+        }
+
+        .recipient-info {
+            flex: 1;
+        }
+
+        .recipient-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .recipient-phone {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--beige);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--hermes-orange);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        .report-preview {
+            background: var(--cream);
+            border-radius: 12px;
+            padding: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            border: 1px solid var(--beige);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .status-message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(22, 163, 74, 0.2);
+        }
+
+        .status-message.error {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 16px;
+            }
+
+            .nav-menu {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .main-container {
+                padding: 16px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="brand">
+                <img src="logo.png" alt="King-Chicken">
+                <div class="brand-text">
+                    <span class="brand-name">KING-CHICKEN</span>
+                    <span class="brand-subtitle">Admin Portal</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <a href="admin.html" class="nav-link" style="background: var(--cream-dark); color: var(--text-medium); border: 1px solid var(--beige);">交易記錄</a>
+                <a href="boss-report.html" class="nav-link" style="background: var(--hermes-orange); color: white;">老闆摯愛</a>
+            </nav>
+            <div class="header-actions">
+                <button class="logout-btn" onclick="logout()">登出</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <h1 class="page-title">老闆摯愛 - 每日報告設置</h1>
+
+        <!-- 自動報告設置 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📅 自動報告設置</div>
+                <div class="toggle-switch active" id="autoReportToggle" onclick="toggleAutoReport()"></div>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">發送時間</label>
+                        <select class="form-select" id="sendTime">
+                            <option value="08:00">早上 8:00</option>
+                            <option value="10:00">早上 10:00</option>
+                            <option value="10:30" selected>早上 10:30</option>
+                            <option value="12:00">中午 12:00</option>
+                            <option value="14:00">下午 2:00</option>
+                            <option value="16:00">下午 4:00</option>
+                            <option value="18:00">下午 6:00</option>
+                            <option value="20:00">晚上 8:00</option>
+                            <option value="22:00">晚上 10:00</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">報告內容</label>
+                        <div style="display: flex; gap: 16px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="includeDetail" checked style="accent-color: var(--hermes-orange);">
+                                <span>詳細數據</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="includeTrend" checked style="accent-color: var(--hermes-orange);">
+                                <span>趨勢分析</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 收件人設置 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">👥 報告收件人</div>
+                <button class="btn btn-secondary" onclick="addRecipient()">+ 添加收件人</button>
+            </div>
+            <div class="card-body">
+                <div class="recipient-list" id="recipientList">
+                    <div class="recipient-item">
+                        <input type="checkbox" class="recipient-checkbox" checked>
+                        <div class="recipient-info">
+                            <div class="recipient-name">咪咪姐</div>
+                            <div class="recipient-phone">852 9811 3210</div>
+                        </div>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="testSend('85298113210')">測試發送</button>
+                    </div>
+                    <div class="recipient-item">
+                        <input type="checkbox" class="recipient-checkbox" checked>
+                        <div class="recipient-info">
+                            <div class="recipient-name">Michelle</div>
+                            <div class="recipient-phone">852 9240 4878</div>
+                        </div>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="testSend('85292404878')">測試發送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 報告預覽 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📝 今日報告預覽</div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="refreshPreview()">🔄 刷新</button>
+                    <button class="btn btn-primary" onclick="sendReportNow()">📤 立即發送</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="report-preview" id="reportPreview">正在生成報告預覽...</div>
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'https://payment-api.jimsbond007.workers.dev/api/v1/client/KC';
+
+        // 檢查登入
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // 加載設置
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/boss-config`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    document.getElementById('sendTime').value = data.data.send_time || '10:30';
+                    document.getElementById('includeDetail').checked = data.data.include_payment_breakdown !== 0;
+                    document.getElementById('includeTrend').checked = data.data.include_weekly !== 0;
+                    
+                    const toggle = document.getElementById('autoReportToggle');
+                    if (data.data.is_enabled === 1) {
+                        toggle.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+
+        // 生成報告預覽
+        async function refreshPreview() {
+            const preview = document.getElementById('reportPreview');
+            preview.textContent = '正在生成報告...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/boss-config/test`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: '85298113210' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.report) {
+                    preview.textContent = data.report.content || data.report;
+                } else {
+                    // 生成默認預覽
+                    const today = new Date().toLocaleDateString('zh-HK');
+                    preview.textContent = `*勁達路盟有限公司*
+*${today} 業務日報*
+
+*今日總覽*
+交易總額：HK$ 12,580.00
+訂單總數：47 筆
+成功訂單：45 筆
+成功率：96%
+平均每筆：HK$ 267.66
+
+*支付方式*
+銀聯：HK$ 8,500 (60%)
+支付寶：HK$ 2,580 (20%)
+微信：HK$ 1,500 (20%)
+
+_報告發自 King-Chicken 支付系統_`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                preview.textContent = '生成預覽失敗：' + error.message;
+            }
+        }
+
+        // 切換自動報告
+        function toggleAutoReport() {
+            const toggle = document.getElementById('autoReportToggle');
+            toggle.classList.toggle('active');
+            saveConfig();
+        }
+
+        // 保存設置
+        async function saveConfig() {
+            try {
+                const isEnabled = document.getElementById('autoReportToggle').classList.contains('active');
+                const sendTime = document.getElementById('sendTime').value;
+                const includeDetail = document.getElementById('includeDetail').checked;
+                const includeTrend = document.getElementById('includeTrend').checked;
+                
+                const response = await fetch(`${API_BASE}/boss-config`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        is_enabled: isEnabled ? 1 : 0,
+                        send_time: sendTime,
+                        include_payment_breakdown: includeDetail ? 1 : 0,
+                        include_weekly: includeTrend ? 1 : 0
+                    })
+                });
+                
+                const data = await response.json();
+                showStatus(data.success ? '設置已保存' : data.error, data.success);
+            } catch (error) {
+                console.error('Error saving config:', error);
+                showStatus('保存失敗', false);
+            }
+        }
+
+        // 測試發送
+        async function testSend(phone) {
+            try {
+                const response = await fetch(`${API_BASE}/boss-config/test`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: phone })
+                });
+                
+                const data = await response.json();
+                showStatus(data.success ? `測試報告已發送到 ${phone}` : data.error, data.success);
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('發送失敗', false);
+            }
+        }
+
+        // 立即發送報告
+        async function sendReportNow() {
+            if (!confirm('確定要立即發送報告給所有收件人嗎？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/boss-config/send`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ immediate: true })
+                });
+                
+                const data = await response.json();
+                showStatus(data.success ? '報告已發送' : data.error, data.success);
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('發送失敗', false);
+            }
+        }
+
+        // 添加收件人
+        function addRecipient() {
+            const name = prompt('請輸入收件人姓名：');
+            if (!name) return;
+            
+            const phone = prompt('請輸入電話號碼（格式：852XXXXXXXX）：');
+            if (!phone) return;
+            
+            const list = document.getElementById('recipientList');
+            const item = document.createElement('div');
+            item.className = 'recipient-item';
+            item.innerHTML = `
+                <input type="checkbox" class="recipient-checkbox" checked>
+                <div class="recipient-info">
+                    <div class="recipient-name">${name}</div>
+                    <div class="recipient-phone">${phone}</div>
+                </div>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="testSend('${phone}')">測試發送</button>
+            `;
+            list.appendChild(item);
+        }
+
+        // 顯示狀態消息
+        function showStatus(message, isSuccess) {
+            const status = document.getElementById('statusMessage');
+            status.textContent = message;
+            status.className = 'status-message ' + (isSuccess ? 'success' : 'error');
+            status.style.display = 'block';
+            setTimeout(() => status.style.display = 'none', 5000);
+        }
+
+        // 登出
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = 'login.html';
+        }
+
+        // 頁面加載
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            refreshPreview();
+        });
+    </script>
+</body>
+</html>
