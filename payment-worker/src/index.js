@@ -1623,6 +1623,16 @@ async function handleClientAPI(request, env, clientCode, subPath, method, origin
     return await testSign(request, env, client, corsOrigin);
   }
 
+  // 管理員登入
+  if (subPath === '/admin/login' && method === 'POST') {
+    return await handleClientAdminLogin(request, env, client, corsOrigin);
+  }
+
+  // 管理員交易記錄查詢
+  if (subPath === '/admin/transactions' && method === 'GET') {
+    return await handleClientAdminTransactions(request, env, client, corsOrigin);
+  }
+
   return jsonResponse({ error: 'Client API endpoint not found', path: subPath }, 404, corsOrigin);
 }
 
@@ -2129,3 +2139,86 @@ async function sendWhatsAppMessage(phone, message) {
 }
 
 
+// ========== Client Admin API Functions ==========
+
+async function handleClientAdminLogin(request, env, client, corsOrigin) {
+  try {
+    const body = await request.json();
+    const { username, password } = body;
+
+    if (!username || !password) {
+      return jsonResponse({ 
+        success: false, 
+        error: 'Username and password are required' 
+      }, 400, corsOrigin);
+    }
+
+    // 簡單驗證（實際應該從數據庫驗證）
+    // 默認賬號: mimichu / kingchicken2024
+    const validUsername = 'mimichu';
+    const validPassword = 'kingchicken2024';
+
+    if (username !== validUsername || password !== validPassword) {
+      return jsonResponse({ 
+        success: false, 
+        error: 'Invalid username or password' 
+      }, 401, corsOrigin);
+    }
+
+    // 生成簡單 token
+    const token = btoa(`${username}:${Date.now()}`);
+
+    return jsonResponse({
+      success: true,
+      token: token,
+      user: {
+        id: 1,
+        username: validUsername,
+        name: '咪咪姐',
+        role: 'admin'
+      }
+    }, 200, corsOrigin);
+
+  } catch (error) {
+    console.error('[ClientAdminLogin] Error:', error);
+    return jsonResponse({ 
+      success: false, 
+      error: 'Login failed: ' + error.message 
+    }, 500, corsOrigin);
+  }
+}
+
+async function handleClientAdminTransactions(request, env, client, corsOrigin) {
+  try {
+    // 獲取該客戶端的交易記錄
+    const transactions = await env.DB.prepare(`
+      SELECT * FROM transactions 
+      WHERE merchant_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `).bind(client.code).all();
+
+    // 處理數據格式
+    const formattedData = (transactions.results || []).map(tx => ({
+      id: tx.id,
+      orderId: tx.order_no,
+      amount: tx.amount / 100, // 轉換為元
+      currency: tx.currency,
+      payType: tx.pay_type,
+      status: tx.status,
+      createdAt: new Date(tx.created_at * 1000).toISOString()
+    }));
+
+    return jsonResponse({
+      success: true,
+      transactions: formattedData
+    }, 200, corsOrigin);
+
+  } catch (error) {
+    console.error('[ClientAdminTransactions] Error:', error);
+    return jsonResponse({ 
+      success: false, 
+      error: 'Failed to fetch transactions' 
+    }, 500, corsOrigin);
+  }
+}
