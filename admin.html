@@ -647,14 +647,21 @@
                 const data = await response.json();
                 let transactions = data.transactions || [];
                 
-                // 日期篩選
+                // 日期篩選 - 使用 createdAtTimestamp（毫秒時間戳）
                 if (startDate) {
                     const start = new Date(startDate).getTime();
-                    transactions = transactions.filter(tx => new Date(tx.createdAt).getTime() >= start);
+                    transactions = transactions.filter(tx => {
+                        // 優先使用 createdAtTimestamp，否則嘗試解析 createdAt
+                        const txTime = tx.createdAtTimestamp || new Date(tx.createdAt).getTime();
+                        return txTime && txTime >= start;
+                    });
                 }
                 if (endDate) {
                     const end = new Date(endDate).getTime() + 86400000;
-                    transactions = transactions.filter(tx => new Date(tx.createdAt).getTime() <= end);
+                    transactions = transactions.filter(tx => {
+                        const txTime = tx.createdAtTimestamp || new Date(tx.createdAt).getTime();
+                        return txTime && txTime <= end;
+                    });
                 }
                 
                 // 狀態篩選
