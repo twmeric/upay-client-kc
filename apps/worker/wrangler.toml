@@ -1,4 +1,4 @@
-# King-Chicken Payment System v2 - Worker Configuration
+# King-Chicken Payment System v2 - SaaS Multi-Tenant Worker
 name = "kingchicken-api-v2"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
@@ -13,8 +13,7 @@ database_id = ""  # 部署後填入
 [vars]
 ENVIRONMENT = "production"
 API_BASE_URL = "https://kingchicken-api-v2.your-account.workers.dev"
-RETURN_URL = "https://kingchicken-v2.pages.dev/payment/success"
+FRONTEND_URL = "https://kingchicken-v2.pages.dev"
 
 # Secrets (使用 wrangler secret put 設置):
-# - EASYLINK_APP_ID
-# - EASYLINK_APP_SECRET
+# 注意：這些是系統級 secrets，商戶級的 easylink 配置在數據庫中

@@ -1,11 +1,8 @@
 /**
- * King-Chicken Payment System v2 - Worker Backend
+ * King-Chicken Payment System v2 - SaaS Multi-Tenant Worker
  * 
- * 設計原則：
- * 1. 單一文件，功能完整
- * 2. 清晰的路由結構
- * 3. 統一的錯誤處理
- * 4. 完整的類型註釋
+ * 支持多商戶的支付平台後端
+ * 路由格式: /api/v1/:merchantCode/...
  */
 
 // ============================================
@@ -13,13 +10,13 @@
 // ============================================
 const CONFIG = {
   EASYLINK_BASE_URL: 'https://ts-api-pay.gnete.com.hk',
-  EASYLINK_MCH_NO: '30104',
   CURRENCY: 'HKD',
-  CLIENT_CODE: 'KC',
   CORS_ORIGINS: [
+    'https://kingchicken-v2.pages.dev',
     'https://upay-client-kc.pages.dev',
     'https://king-chicken.jkdcoding.com',
-    'http://localhost:8788'
+    'http://localhost:8788',
+    'http://localhost:3000'
   ]
 };
 
@@ -27,65 +24,42 @@ const CONFIG = {
 // 工具函數
 // ============================================
 
-/**
- * 生成 JSON 響應
- */
 function jsonResponse(data, status = 200, origin = null) {
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key'
   };
-  
-  if (origin) {
-    headers['Access-Control-Allow-Origin'] = origin;
-  }
-  
+  if (origin) headers['Access-Control-Allow-Origin'] = origin;
   return new Response(JSON.stringify(data), { status, headers });
 }
 
-/**
- * 生成錯誤響應
- */
 function errorResponse(message, status = 400, origin = null) {
   return jsonResponse({ success: false, error: message }, status, origin);
 }
 
-/**
- * 生成成功響應
- */
 function successResponse(data = null, origin = null) {
   return jsonResponse({ success: true, data }, 200, origin);
 }
 
-/**
- * 獲取 CORS Origin
- */
 function getCorsOrigin(request) {
   const origin = request.headers.get('Origin');
   if (!origin) return CONFIG.CORS_ORIGINS[0];
-  
   const allowed = CONFIG.CORS_ORIGINS.find(o => 
     origin === o || origin.endsWith('.pages.dev')
   );
   return allowed || CONFIG.CORS_ORIGINS[0];
 }
 
-/**
- * 生成訂單號
- */
-function generateOrderNo() {
+function generateOrderNo(merchantCode) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let result = 'KC';
+  let result = merchantCode;
   for (let i = 0; i < 10; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
 }
 
-/**
- * 計算 EasyLink 簽名
- */
 async function calculateSign(params, secret) {
   const sortedKeys = Object.keys(params).sort();
   const signString = sortedKeys
@@ -101,28 +75,40 @@ async function calculateSign(params, secret) {
 }
 
 // ============================================
+// 商戶管理
+// ============================================
+
+async function getMerchantByCode(env, code) {
+  const result = await env.DB.prepare(
+    'SELECT * FROM merchants WHERE code = ? AND status = "active"'
+  ).bind(code).first();
+  return result;
+}
+
+async function getMerchantById(env, id) {
+  const result = await env.DB.prepare(
+    'SELECT * FROM merchants WHERE id = ?'
+  ).bind(id).first();
+  return result;
+}
+
+// ============================================
 // 數據庫操作
 // ============================================
 
-/**
- * 創建交易記錄
- */
-async function createTransaction(env, data) {
+async function createTransaction(env, merchantId, data) {
   const now = Math.floor(Date.now() / 1000);
   const result = await env.DB.prepare(`
-    INSERT INTO transactions (order_no, amount, currency, pay_type, status, remark, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)
-  `).bind(data.orderNo, data.amount, data.currency, data.payType, data.remark || '', now, now).run();
+    INSERT INTO transactions (merchant_id, order_no, amount, currency, pay_type, status, remark, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+  `).bind(merchantId, data.orderNo, data.amount, data.currency, data.payType, data.remark || '', now, now).run();
   
   return { id: result.meta?.last_row_id, orderNo: data.orderNo };
 }
 
-/**
- * 獲取交易記錄
- */
-async function getTransactions(env, filters = {}) {
-  let query = 'SELECT * FROM transactions WHERE 1=1';
-  const params = [];
+async function getTransactions(env, merchantId, filters = {}) {
+  let query = 'SELECT * FROM transactions WHERE merchant_id = ?';
+  const params = [merchantId];
   
   if (filters.startDate) {
     query += ' AND created_at >= ?';
@@ -167,9 +153,6 @@ async function getTransactions(env, filters = {}) {
   }));
 }
 
-/**
- * 更新交易狀態
- */
 async function updateTransactionStatus(env, orderNo, status, payOrderId = null, rawResponse = null) {
   const now = Math.floor(Date.now() / 1000);
   let query = 'UPDATE transactions SET status = ?, updated_at = ?';
@@ -190,9 +173,6 @@ async function updateTransactionStatus(env, orderNo, status, payOrderId = null, 
   await env.DB.prepare(query).bind(...params).run();
 }
 
-/**
- * 更新備註
- */
 async function updateRemark(env, orderNo, remark) {
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare(`
@@ -200,10 +180,7 @@ async function updateRemark(env, orderNo, remark) {
   `).bind(remark, now, orderNo).run();
 }
 
-/**
- * 獲取統計數據
- */
-async function getStatistics(env) {
+async function getStatistics(env, merchantId) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayTimestamp = Math.floor(today.getTime() / 1000);
@@ -213,23 +190,23 @@ async function getStatistics(env) {
   const todayResult = await env.DB.prepare(`
     SELECT COUNT(*) as count, SUM(amount) as total
     FROM transactions
-    WHERE created_at >= ? AND status = 'success'
-  `).bind(todayTimestamp).first();
+    WHERE merchant_id = ? AND created_at >= ? AND status = 'success'
+  `).bind(merchantId, todayTimestamp).first();
   
   // 30天數據
   const thirtyDaysResult = await env.DB.prepare(`
     SELECT COUNT(*) as total, SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success
     FROM transactions
-    WHERE created_at >= ?
-  `).bind(thirtyDaysAgo).first();
+    WHERE merchant_id = ? AND created_at >= ?
+  `).bind(merchantId, thirtyDaysAgo).first();
   
   // 支付方式統計
   const payTypeResult = await env.DB.prepare(`
     SELECT pay_type, COUNT(*) as count, SUM(amount) as total
     FROM transactions
-    WHERE created_at >= ? AND status = 'success'
+    WHERE merchant_id = ? AND created_at >= ? AND status = 'success'
     GROUP BY pay_type
-  `).bind(todayTimestamp).all();
+  `).bind(merchantId, todayTimestamp).all();
   
   const todayRevenue = (todayResult?.total || 0) / 100;
   const todayOrders = todayResult?.count || 0;
@@ -241,7 +218,7 @@ async function getStatistics(env) {
     todayRevenue,
     todayOrders,
     successRate,
-    avgResponseTime: 1.2, // 固定值，實際應計算
+    avgResponseTime: 1.2,
     payTypeStats: (payTypeResult.results || []).map(r => ({
       type: r.pay_type,
       count: r.count,
@@ -250,13 +227,17 @@ async function getStatistics(env) {
   };
 }
 
+async function getReportRecipients(env, merchantId) {
+  const result = await env.DB.prepare(`
+    SELECT * FROM report_recipients WHERE merchant_id = ? AND enabled = 1
+  `).bind(merchantId).all();
+  return result.results || [];
+}
+
 // ============================================
 // EasyLink API 調用
 // ============================================
 
-/**
- * 創建支付訂單
- */
 async function createEasyLinkOrder(params, secret) {
   const sign = await calculateSign(params, secret);
   const body = new URLSearchParams({ ...params, sign });
@@ -269,11 +250,9 @@ async function createEasyLinkOrder(params, secret) {
   
   const text = await response.text();
   
-  // 嘗試解析 JSON
   try {
     return JSON.parse(text);
   } catch {
-    // 可能是 XML，簡單解析
     const codeMatch = text.match(/<code>(\d+)<\/code>/);
     const msgMatch = text.match(/<msg>([^<]+)<\/msg>/);
     const orderMatch = text.match(/<payOrderId>([^<]+)<\/payOrderId>/);
@@ -294,10 +273,7 @@ async function createEasyLinkOrder(params, secret) {
 // 請求處理器
 // ============================================
 
-/**
- * 處理創建支付
- */
-async function handleCreatePayment(request, env, origin) {
+async function handleCreatePayment(request, env, merchant, origin) {
   try {
     const body = await request.json();
     const { amount, payType, remark } = body;
@@ -311,8 +287,8 @@ async function handleCreatePayment(request, env, origin) {
     }
     
     // 創建訂單
-    const orderNo = generateOrderNo();
-    await createTransaction(env, {
+    const orderNo = generateOrderNo(merchant.code);
+    await createTransaction(env, merchant.id, {
       orderNo,
       amount: Math.round(amount * 100),
       currency: CONFIG.CURRENCY,
@@ -322,25 +298,24 @@ async function handleCreatePayment(request, env, origin) {
     
     // 調用 EasyLink
     const params = {
-      mchNo: CONFIG.EASYLINK_MCH_NO,
-      appId: env.EASYLINK_APP_ID,
+      mchNo: merchant.easylink_mch_no,
+      appId: merchant.easylink_app_id,
       mchOrderNo: orderNo,
       amount: Math.round(amount * 100),
       currency: CONFIG.CURRENCY,
       payType,
-      subject: 'King-Chicken Payment',
+      subject: `${merchant.name} Payment`,
       notifyUrl: `${env.API_BASE_URL || ''}/webhook/easylink`,
-      returnUrl: env.RETURN_URL || 'https://upay-client-kc.pages.dev/payment/success'
+      returnUrl: `${env.FRONTEND_URL || ''}/payment/success?merchant=${merchant.code}`
     };
     
-    const result = await createEasyLinkOrder(params, env.EASYLINK_APP_SECRET);
+    const result = await createEasyLinkOrder(params, merchant.easylink_app_secret);
     
     if (result.code !== 0) {
       await updateTransactionStatus(env, orderNo, 'failed');
       return errorResponse(result.msg || 'Payment creation failed', 400, origin);
     }
     
-    // 更新交易
     await updateTransactionStatus(
       env, 
       orderNo, 
@@ -361,10 +336,7 @@ async function handleCreatePayment(request, env, origin) {
   }
 }
 
-/**
- * 處理獲取交易列表
- */
-async function handleGetTransactions(request, env, origin) {
+async function handleGetTransactions(request, env, merchant, origin) {
   try {
     const url = new URL(request.url);
     const filters = {
@@ -376,8 +348,7 @@ async function handleGetTransactions(request, env, origin) {
       payOrderId: url.searchParams.get('payOrderId')
     };
     
-    const transactions = await getTransactions(env, filters);
-    
+    const transactions = await getTransactions(env, merchant.id, filters);
     return successResponse({ transactions }, origin);
     
   } catch (error) {
@@ -386,12 +357,9 @@ async function handleGetTransactions(request, env, origin) {
   }
 }
 
-/**
- * 處理獲取統計數據
- */
-async function handleGetStatistics(request, env, origin) {
+async function handleGetStatistics(request, env, merchant, origin) {
   try {
-    const stats = await getStatistics(env);
+    const stats = await getStatistics(env, merchant.id);
     return successResponse(stats, origin);
   } catch (error) {
     console.error('[GetStatistics] Error:', error);
@@ -399,9 +367,6 @@ async function handleGetStatistics(request, env, origin) {
   }
 }
 
-/**
- * 處理更新備註
- */
 async function handleUpdateRemark(request, env, origin) {
   try {
     const body = await request.json();
@@ -412,7 +377,6 @@ async function handleUpdateRemark(request, env, origin) {
     }
     
     await updateRemark(env, orderNo, remark || '');
-    
     return successResponse(null, origin);
   } catch (error) {
     console.error('[UpdateRemark] Error:', error);
@@ -420,20 +384,31 @@ async function handleUpdateRemark(request, env, origin) {
   }
 }
 
-/**
- * 處理 Webhook
- */
+async function handleGetMerchantConfig(request, merchant, origin) {
+  try {
+    const config = JSON.parse(merchant.config || '{}');
+    return successResponse({
+      code: merchant.code,
+      name: merchant.name,
+      theme: config.theme || 'orange',
+      currency: config.currency || 'HKD',
+      logo: config.logo || '🐔'
+    }, origin);
+  } catch (error) {
+    console.error('[GetMerchantConfig] Error:', error);
+    return errorResponse('Failed to get config', 500, origin);
+  }
+}
+
 async function handleWebhook(request, env) {
   try {
     const body = await request.text();
-    
-    // 解析通知數據
     const params = new URLSearchParams(body);
     const data = {};
     params.forEach((value, key) => { data[key] = value; });
     
     const orderNo = data.mchOrderNo;
-    const status = data.status; // 2=success, 3=failed
+    const status = data.status;
     
     if (orderNo) {
       const newStatus = status === '2' ? 'success' : status === '3' ? 'failed' : 'pending';
@@ -456,7 +431,7 @@ export default {
     const url = new URL(request.url);
     const origin = getCorsOrigin(request);
     
-    // 處理 CORS 預檢請求
+    // CORS 預檢
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -468,40 +443,54 @@ export default {
       });
     }
     
-    // 路由
     const path = url.pathname;
     
     // 健康檢查
     if (path === '/health') {
-      return jsonResponse({ status: 'ok', version: '2.0.0' }, 200, origin);
+      return jsonResponse({ status: 'ok', version: '2.0.0-saas' }, 200, origin);
     }
     
-    // 創建支付
-    if (path === '/api/payment/create' && request.method === 'POST') {
-      return handleCreatePayment(request, env, origin);
-    }
-    
-    // 獲取交易列表
-    if (path === '/api/admin/transactions' && request.method === 'GET') {
-      return handleGetTransactions(request, env, origin);
-    }
-    
-    // 獲取統計數據
-    if (path === '/api/admin/statistics' && request.method === 'GET') {
-      return handleGetStatistics(request, env, origin);
-    }
-    
-    // 更新備註
-    if (path === '/api/admin/remark' && request.method === 'POST') {
-      return handleUpdateRemark(request, env, origin);
-    }
-    
-    // Webhook
+    // Webhook (不需要商戶識別)
     if (path === '/webhook/easylink' && request.method === 'POST') {
       return handleWebhook(request, env);
     }
     
-    // 404
+    // 解析商戶代碼: /api/v1/:merchantCode/...
+    const pathMatch = path.match(/^\/api\/v1\/([^\/]+)(\/.*)?$/);
+    if (!pathMatch) {
+      return errorResponse('Invalid API path. Use /api/v1/:merchantCode/...', 404, origin);
+    }
+    
+    const merchantCode = pathMatch[1];
+    const subPath = pathMatch[2] || '/';
+    
+    // 獲取商戶信息
+    const merchant = await getMerchantByCode(env, merchantCode);
+    if (!merchant) {
+      return errorResponse('Merchant not found', 404, origin);
+    }
+    
+    // 路由分發
+    if (subPath === '/' && request.method === 'GET') {
+      return handleGetMerchantConfig(request, merchant, origin);
+    }
+    
+    if (subPath === '/payment/create' && request.method === 'POST') {
+      return handleCreatePayment(request, env, merchant, origin);
+    }
+    
+    if (subPath === '/admin/transactions' && request.method === 'GET') {
+      return handleGetTransactions(request, env, merchant, origin);
+    }
+    
+    if (subPath === '/admin/statistics' && request.method === 'GET') {
+      return handleGetStatistics(request, env, merchant, origin);
+    }
+    
+    if (subPath === '/admin/remark' && request.method === 'POST') {
+      return handleUpdateRemark(request, env, origin);
+    }
+    
     return errorResponse('Not found', 404, origin);
   }
 };

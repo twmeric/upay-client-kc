@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>King-Chicken - 管理後台</title>
+    <title>管理後台</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            --orange: #FF6B00;
-            --orange-dark: #E55A00;
+            --primary: #FF6B00;
+            --primary-dark: #E55A00;
             --cream: #FAF7F2;
             --cream-dark: #F5F0E8;
             --beige: #EDE8E0;
@@ -26,7 +26,6 @@
             min-height: 100vh;
         }
         
-        /* Header */
         .header {
             background: white;
             border-bottom: 1px solid var(--beige);
@@ -53,7 +52,7 @@
         .brand-logo {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -64,6 +63,14 @@
         .brand-text { display: flex; flex-direction: column; }
         .brand-name { font-size: 20px; font-weight: 600; color: var(--text); }
         .brand-subtitle { font-size: 11px; color: var(--text-light); letter-spacing: 1px; }
+        
+        .merchant-selector {
+            padding: 8px 16px;
+            border: 1px solid var(--beige);
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
         
         .header-nav {
             display: flex;
@@ -82,7 +89,7 @@
         }
         
         .nav-btn.active {
-            background: var(--orange);
+            background: var(--primary);
             color: white;
         }
         
@@ -105,7 +112,7 @@
         .user-avatar {
             width: 28px;
             height: 28px;
-            background: var(--orange);
+            background: var(--primary);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -130,14 +137,12 @@
             border-color: var(--danger);
         }
         
-        /* Main Content */
         .main {
             max-width: 1400px;
             margin: 0 auto;
             padding: 24px;
         }
         
-        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -191,7 +196,6 @@
             color: var(--success);
         }
         
-        /* Transactions Section */
         .section-card {
             background: white;
             border-radius: 16px;
@@ -204,6 +208,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
         
         .section-title {
@@ -219,7 +225,7 @@
             content: '';
             width: 4px;
             height: 20px;
-            background: var(--orange);
+            background: var(--primary);
             border-radius: 2px;
         }
         
@@ -244,16 +250,15 @@
         .btn:hover { background: var(--cream); }
         
         .btn-primary {
-            background: var(--orange);
+            background: var(--primary);
             color: white;
-            border-color: var(--orange);
+            border-color: var(--primary);
         }
         
         .btn-primary:hover {
-            background: var(--orange-dark);
+            background: var(--primary-dark);
         }
         
-        /* Filters */
         .filters {
             display: flex;
             flex-wrap: wrap;
@@ -273,10 +278,9 @@
         
         .filter-input:focus {
             outline: none;
-            border-color: var(--orange);
+            border-color: var(--primary);
         }
         
-        /* Table */
         .table-container {
             overflow-x: auto;
         }
@@ -362,12 +366,11 @@
         .remark-input {
             width: 100%;
             padding: 4px 8px;
-            border: 1px solid var(--orange);
+            border: 1px solid var(--primary);
             border-radius: 4px;
             font-size: 14px;
         }
         
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -379,7 +382,6 @@
             margin-bottom: 16px;
         }
         
-        /* Loading */
         .loading {
             text-align: center;
             padding: 40px;
@@ -389,7 +391,7 @@
             width: 40px;
             height: 40px;
             border: 3px solid var(--beige);
-            border-top-color: var(--orange);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 16px;
@@ -397,7 +399,6 @@
         
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* Error Toast */
         .toast {
             position: fixed;
             top: 20px;
@@ -419,6 +420,29 @@
             to { transform: translateX(0); opacity: 1; }
         }
         
+        .pay-link {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--cream);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .pay-link label {
+            color: var(--text-light);
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .pay-link input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--beige);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
         @media (max-width: 1024px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -435,12 +459,16 @@
     <header class="header">
         <div class="header-top">
             <div class="brand">
-                <div class="brand-logo">🐔</div>
+                <div class="brand-logo" id="brandLogo">🐔</div>
                 <div class="brand-text">
-                    <div class="brand-name">KING-CHICKEN</div>
+                    <div class="brand-name" id="brandName">KING-CHICKEN</div>
                     <div class="brand-subtitle">ADMIN PORTAL</div>
                 </div>
             </div>
+            
+            <select class="merchant-selector" id="merchantSelector">
+                <option value="KC">King-Chicken (KC)</option>
+            </select>
             
             <nav class="header-nav">
                 <button class="nav-btn active">交易記錄</button>
@@ -496,6 +524,14 @@
                 <div class="stat-change">支付響應時間</div>
             </div>
         </div>
+        
+        <!-- Payment Link -->
+        <div class="pay-link">
+            <label>商戶支付連結 (分享給客戶):</label>
+            <input type="text" id="payLink" readonly onclick="this.select()">
+        </div>
+        
+        <br>
         
         <!-- Transactions -->
         <div class="section-card">
@@ -554,17 +590,26 @@
     </main>
     
     <script>
+        // ============================================
         // 配置
+        // ============================================
         const API_BASE = 'https://kingchicken-api-v2.your-account.workers.dev';
+        const FRONTEND_BASE = window.location.origin;
         
-        // 支付方式名稱
+        // ============================================
+        // 狀態
+        // ============================================
+        let currentMerchant = 'KC';
+        
+        // ============================================
+        // 常量
+        // ============================================
         const PAY_TYPE_NAMES = {
             'UP_OP': '銀聯',
             'ALI_H5': '支付寶',
             'WX_H5': '微信'
         };
         
-        // 狀態名稱
         const STATUS_NAMES = {
             'success': '成功',
             'pending': '處理中',
@@ -572,7 +617,9 @@
             'paid': '已支付'
         };
         
-        // 檢查登入
+        // ============================================
+        // 認證檢查
+        // ============================================
         const token = localStorage.getItem('adminToken');
         const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
         
@@ -583,16 +630,54 @@
             document.getElementById('userAvatar').textContent = (user.username || 'A')[0].toUpperCase();
         }
         
+        // ============================================
+        // 商戶選擇
+        // ============================================
+        const merchantSelector = document.getElementById('merchantSelector');
+        merchantSelector.addEventListener('change', (e) => {
+            currentMerchant = e.target.value;
+            loadMerchantConfig();
+            loadData();
+        });
+        
+        // ============================================
+        // 加載商戶配置
+        // ============================================
+        async function loadMerchantConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/${currentMerchant}/`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const config = result.data;
+                    document.getElementById('brandName').textContent = config.name;
+                    if (config.logo) {
+                        document.getElementById('brandLogo').textContent = config.logo;
+                    }
+                    
+                    // 更新支付連結
+                    const payLink = `${FRONTEND_BASE}/payment/?merchant=${currentMerchant}`;
+                    document.getElementById('payLink').value = payLink;
+                }
+            } catch (error) {
+                console.error('Failed to load merchant config:', error);
+            }
+        }
+        
+        // ============================================
         // 設置默認日期
+        // ============================================
         const today = new Date().toISOString().split('T')[0];
         const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         document.getElementById('endDate').value = today;
         document.getElementById('startDate').value = lastWeek;
         
+        // ============================================
         // 加載統計數據
+        // ============================================
         async function loadStats() {
             try {
-                const response = await fetch(`${API_BASE}/api/admin/statistics`);
+                const response = await fetch(`${API_BASE}/api/v1/${currentMerchant}/admin/statistics`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -606,7 +691,9 @@
             }
         }
         
+        // ============================================
         // 加載交易記錄
+        // ============================================
         async function loadTransactions() {
             const tbody = document.getElementById('transactionTable');
             const emptyState = document.getElementById('emptyState');
@@ -637,7 +724,7 @@
                     params.append('payOrderId', document.getElementById('payOrderIdFilter').value);
                 }
                 
-                const response = await fetch(`${API_BASE}/api/admin/transactions?${params}`);
+                const response = await fetch(`${API_BASE}/api/v1/${currentMerchant}/admin/transactions?${params}`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -676,13 +763,15 @@
             }
         }
         
+        // ============================================
         // 編輯備註
+        // ============================================
         async function editRemark(orderNo, currentRemark) {
             const newRemark = prompt('輸入備註:', currentRemark === '(點擊添加備註)' ? '' : currentRemark);
-            if (newRemark === null) return; // 用戶取消
+            if (newRemark === null) return;
             
             try {
-                const response = await fetch(`${API_BASE}/api/admin/remark`, {
+                const response = await fetch(`${API_BASE}/api/v1/${currentMerchant}/admin/remark`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ orderNo, remark: newRemark })
@@ -701,7 +790,9 @@
             }
         }
         
+        // ============================================
         // 導出數據
+        // ============================================
         function exportData() {
             const rows = [['時間', '訂單號', '支付訂單號', '支付方式', '金額', '狀態', '備註']];
             const tbody = document.getElementById('transactionTable');
@@ -725,11 +816,13 @@
             const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `transactions_${currentMerchant}_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
         }
         
+        // ============================================
         // 顯示提示
+        // ============================================
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -738,25 +831,30 @@
             setTimeout(() => toast.style.display = 'none', 3000);
         }
         
+        // ============================================
         // 登出
+        // ============================================
         function logout() {
             localStorage.removeItem('adminToken');
             localStorage.removeItem('adminUser');
             window.location.href = '../login/';
         }
         
+        // ============================================
         // 加載所有數據
+        // ============================================
         function loadData() {
             loadStats();
             loadTransactions();
         }
         
-        // 綁定過濾器事件
-        ['startDate', 'endDate', 'statusFilter', 'payTypeFilter', 'orderNoFilter', 'payOrderIdFilter'].forEach(id => {
+        // ============================================
+        // 綁定事件
+        // ============================================
+        ['startDate', 'endDate', 'statusFilter', 'payTypeFilter'].forEach(id => {
             document.getElementById(id).addEventListener('change', loadTransactions);
         });
         
-        // 防抖搜索
         let debounceTimer;
         ['orderNoFilter', 'payOrderIdFilter'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
@@ -765,7 +863,10 @@
             });
         });
         
+        // ============================================
         // 初始化
+        // ============================================
+        loadMerchantConfig();
         loadData();
     </script>
 </body>

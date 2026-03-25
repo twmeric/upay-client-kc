@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>King-Chicken - 安全支付</title>
+    <title>安全支付</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            --orange: #FF6B00;
-            --orange-dark: #E55A00;
+            --primary: #FF6B00;
+            --primary-dark: #E55A00;
             --cream: #FAF7F2;
             --cream-dark: #F5F0E8;
             --text: #2C2419;
@@ -34,7 +34,7 @@
         }
         
         .header {
-            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             padding: 32px 24px;
             text-align: center;
@@ -70,7 +70,7 @@
             content: '';
             width: 4px;
             height: 16px;
-            background: var(--orange);
+            background: var(--primary);
             border-radius: 2px;
         }
         
@@ -93,7 +93,7 @@
         }
         
         .amount-btn:hover, .amount-btn.active {
-            border-color: var(--orange);
+            border-color: var(--primary);
             background: #FFF8F0;
         }
         
@@ -107,7 +107,7 @@
         }
         
         .custom-amount .prefix {
-            color: var(--orange);
+            color: var(--primary);
             font-weight: 600;
             font-size: 18px;
         }
@@ -137,7 +137,7 @@
         }
         
         .pay-method:hover, .pay-method.active {
-            border-color: var(--orange);
+            border-color: var(--primary);
             background: #FFF8F0;
         }
         
@@ -169,8 +169,8 @@
         }
         
         .pay-method.active .radio {
-            border-color: var(--orange);
-            background: var(--orange);
+            border-color: var(--primary);
+            background: var(--primary);
         }
         
         .pay-method.active .radio::after {
@@ -195,12 +195,12 @@
         }
         
         .summary-label { font-size: 14px; color: var(--text-light); }
-        .summary-value { font-size: 24px; font-weight: 600; color: var(--orange); }
+        .summary-value { font-size: 24px; font-weight: 600; color: var(--primary); }
         
         .submit-btn {
             width: 100%;
             padding: 16px;
-            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
             border-radius: 12px;
@@ -223,7 +223,7 @@
             width: 40px;
             height: 40px;
             border: 3px solid var(--border);
-            border-top-color: var(--orange);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 16px;
@@ -244,6 +244,14 @@
             display: none;
             z-index: 1000;
         }
+        
+        .merchant-info {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            color: var(--text-light);
+            background: var(--cream);
+        }
     </style>
 </head>
 <body>
@@ -251,8 +259,8 @@
     
     <div class="container">
         <div class="header">
-            <div class="logo">🐔</div>
-            <div class="title">King-Chicken</div>
+            <div class="logo" id="merchantLogo">🐔</div>
+            <div class="title" id="merchantName">Loading...</div>
             <div class="subtitle">安全支付</div>
         </div>
         
@@ -313,17 +321,47 @@
             <div class="spinner"></div>
             <p>正在創建訂單...</p>
         </div>
+        
+        <div class="merchant-info">
+            商戶代碼: <span id="merchantCodeDisplay">-</span> | 
+            支付服務由 EasyLink 提供
+        </div>
     </div>
     
     <script>
+        // ============================================
         // 配置
+        // ============================================
         const API_BASE = 'https://kingchicken-api-v2.your-account.workers.dev';
         
+        // 從 URL 獲取商戶代碼
+        // 支持: /payment/?merchant=KC 或 /payment/KC/
+        function getMerchantCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromQuery = urlParams.get('merchant');
+            if (fromQuery) return fromQuery;
+            
+            // 從路徑解析
+            const pathMatch = window.location.pathname.match(/\/payment\/([^\/]+)/);
+            if (pathMatch) return pathMatch[1];
+            
+            // 默認
+            return 'KC';
+        }
+        
+        const merchantCode = getMerchantCode();
+        document.getElementById('merchantCodeDisplay').textContent = merchantCode;
+        
+        // ============================================
         // 狀態
+        // ============================================
         let selectedAmount = 0;
         let selectedPayType = 'UP_OP';
+        let merchantConfig = null;
         
+        // ============================================
         // DOM 元素
+        // ============================================
         const amountBtns = document.querySelectorAll('.amount-btn');
         const customAmountInput = document.getElementById('customAmount');
         const payMethods = document.querySelectorAll('.pay-method');
@@ -333,20 +371,53 @@
         const paymentFormEl = document.getElementById('paymentForm');
         const errorToast = document.getElementById('errorToast');
         
-        // 更新總額顯示
+        // ============================================
+        // 加載商戶配置
+        // ============================================
+        async function loadMerchantConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    merchantConfig = result.data;
+                    document.getElementById('merchantName').textContent = merchantConfig.name;
+                    if (merchantConfig.logo) {
+                        document.getElementById('merchantLogo').textContent = merchantConfig.logo;
+                    }
+                    // 更新主題色
+                    if (merchantConfig.theme === 'blue') {
+                        document.documentElement.style.setProperty('--primary', '#1677FF');
+                        document.documentElement.style.setProperty('--primary-dark', '#0958d9');
+                    }
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Failed to load merchant config:', error);
+                showError('無法加載商戶信息，使用默認設置');
+                document.getElementById('merchantName').textContent = merchantCode;
+            }
+        }
+        
+        // ============================================
+        // 工具函數
+        // ============================================
         function updateTotal() {
-            totalAmountEl.textContent = `HK$ ${selectedAmount.toLocaleString('en-HK', {minimumFractionDigits: 2})}`;
+            const currency = merchantConfig?.currency || 'HKD';
+            totalAmountEl.textContent = `${currency} ${selectedAmount.toLocaleString('en-HK', {minimumFractionDigits: 2})}`;
             submitBtn.disabled = selectedAmount <= 0;
         }
         
-        // 顯示錯誤
         function showError(msg) {
             errorToast.textContent = msg;
             errorToast.style.display = 'block';
             setTimeout(() => errorToast.style.display = 'none', 3000);
         }
         
-        // 金額按鈕點擊
+        // ============================================
+        // 事件處理
+        // ============================================
         amountBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 amountBtns.forEach(b => b.classList.remove('active'));
@@ -357,14 +428,12 @@
             });
         });
         
-        // 自定義金額
         customAmountInput.addEventListener('input', () => {
             amountBtns.forEach(b => b.classList.remove('active'));
             selectedAmount = parseFloat(customAmountInput.value) || 0;
             updateTotal();
         });
         
-        // 支付方式選擇
         payMethods.forEach(method => {
             method.addEventListener('click', () => {
                 payMethods.forEach(m => m.classList.remove('active'));
@@ -373,7 +442,6 @@
             });
         });
         
-        // 提交支付
         submitBtn.addEventListener('click', async () => {
             if (selectedAmount <= 0) {
                 showError('請選擇或輸入金額');
@@ -384,7 +452,7 @@
             loadingEl.style.display = 'block';
             
             try {
-                const response = await fetch(`${API_BASE}/api/payment/create`, {
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/payment/create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -407,7 +475,10 @@
             }
         });
         
+        // ============================================
         // 初始化
+        // ============================================
+        loadMerchantConfig();
         updateTotal();
     </script>
 </body>
