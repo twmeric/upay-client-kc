@@ -7,7 +7,7 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "easylink-db-v2"
-database_id = ""  # 部署後填入
+database_id = "350594c4-4149-4519-b941-f9c0faf4121c"  # production database
 
 # Environment Variables
 [vars]
