@@ -1,0 +1,20 @@
+# King-Chicken Payment System v2 - Worker Configuration
+name = "kingchicken-api-v2"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "kingchicken-db-v2"
+database_id = ""  # 部署後填入
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+API_BASE_URL = "https://kingchicken-api-v2.your-account.workers.dev"
+RETURN_URL = "https://kingchicken-v2.pages.dev/payment/success"
+
+# Secrets (使用 wrangler secret put 設置):
+# - EASYLINK_APP_ID
+# - EASYLINK_APP_SECRET

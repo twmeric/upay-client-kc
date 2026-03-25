@@ -1,0 +1,18 @@
+{
+  "name": "king-chicken-v2",
+  "version": "2.0.0",
+  "description": "King-Chicken Payment System v2 - Clean Architecture",
+  "scripts": {
+    "dev:worker": "cd apps/worker && wrangler dev",
+    "dev:web": "npx serve apps/web",
+    "deploy": "node scripts/deploy.js",
+    "deploy:worker": "node scripts/deploy.js worker",
+    "deploy:web": "node scripts/deploy.js web",
+    "db:create": "cd apps/worker && wrangler d1 create kingchicken-db-v2",
+    "db:migrate": "cd apps/worker && wrangler d1 execute kingchicken-db-v2 --file=../../packages/database/migrations/001_initial.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "serve": "^14.0.0"
+  }
+}

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King-Chicken - 安全支付</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --orange: #FF6B00;
+            --orange-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --text: #2C2419;
+            --text-light: #5C4F3D;
+            --border: #EDE8E0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            color: white;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        
+        .title { font-size: 24px; font-weight: 600; }
+        .subtitle { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+        
+        .content { padding: 24px; }
+        
+        .section { margin-bottom: 24px; }
+        .section-title {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--orange);
+            border-radius: 2px;
+        }
+        
+        .amount-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .amount-btn {
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .amount-btn:hover, .amount-btn.active {
+            border-color: var(--orange);
+            background: #FFF8F0;
+        }
+        
+        .custom-amount {
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 0 16px;
+            margin-top: 12px;
+        }
+        
+        .custom-amount .prefix {
+            color: var(--orange);
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .custom-amount input {
+            flex: 1;
+            border: none;
+            padding: 16px 12px;
+            font-size: 18px;
+            outline: none;
+        }
+        
+        .pay-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .pay-method {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pay-method:hover, .pay-method.active {
+            border-color: var(--orange);
+            background: #FFF8F0;
+        }
+        
+        .pay-method .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        
+        .pay-method.up .icon { background: #C41E3A; color: white; }
+        .pay-method.ali .icon { background: #1677FF; color: white; }
+        .pay-method.wx .icon { background: #07C160; color: white; }
+        
+        .pay-method .info { flex: 1; }
+        .pay-method .name { font-weight: 500; color: var(--text); }
+        .pay-method .desc { font-size: 12px; color: var(--text-light); }
+        
+        .pay-method .radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .pay-method.active .radio {
+            border-color: var(--orange);
+            background: var(--orange);
+        }
+        
+        .pay-method.active .radio::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .summary {
+            background: var(--cream);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .summary-label { font-size: 14px; color: var(--text-light); }
+        .summary-value { font-size: 24px; font-weight: 600; color: var(--orange); }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255,107,0,0.3); }
+        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .error-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc2626;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-toast" id="errorToast"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="logo">🐔</div>
+            <div class="title">King-Chicken</div>
+            <div class="subtitle">安全支付</div>
+        </div>
+        
+        <div class="content" id="paymentForm">
+            <div class="section">
+                <div class="section-title">選擇金額</div>
+                <div class="amount-grid">
+                    <button class="amount-btn" data-amount="100">HK$ 100</button>
+                    <button class="amount-btn" data-amount="500">HK$ 500</button>
+                    <button class="amount-btn" data-amount="1000">HK$ 1,000</button>
+                    <button class="amount-btn" data-amount="2000">HK$ 2,000</button>
+                </div>
+                <div class="custom-amount">
+                    <span class="prefix">HK$</span>
+                    <input type="number" id="customAmount" placeholder="輸入自定義金額" min="1">
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">選擇支付方式</div>
+                <div class="pay-methods">
+                    <div class="pay-method up active" data-type="UP_OP">
+                        <div class="icon">銀</div>
+                        <div class="info">
+                            <div class="name">銀聯在線支付</div>
+                            <div class="desc">安全快捷的銀行卡支付</div>
+                        </div>
+                        <div class="radio"></div>
+                    </div>
+                    <div class="pay-method ali" data-type="ALI_H5">
+                        <div class="icon">支</div>
+                        <div class="info">
+                            <div class="name">支付寶</div>
+                            <div class="desc">支付寶 H5 支付</div>
+                        </div>
+                        <div class="radio"></div>
+                    </div>
+                    <div class="pay-method wx" data-type="WX_H5">
+                        <div class="icon">微</div>
+                        <div class="info">
+                            <div class="name">微信支付</div>
+                            <div class="desc">微信 H5 支付</div>
+                        </div>
+                        <div class="radio"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary">
+                <span class="summary-label">訂單金額</span>
+                <span class="summary-value" id="totalAmount">HK$ 0.00</span>
+            </div>
+            
+            <button class="submit-btn" id="submitBtn">立即支付</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在創建訂單...</p>
+        </div>
+    </div>
+    
+    <script>
+        // 配置
+        const API_BASE = 'https://kingchicken-api-v2.your-account.workers.dev';
+        
+        // 狀態
+        let selectedAmount = 0;
+        let selectedPayType = 'UP_OP';
+        
+        // DOM 元素
+        const amountBtns = document.querySelectorAll('.amount-btn');
+        const customAmountInput = document.getElementById('customAmount');
+        const payMethods = document.querySelectorAll('.pay-method');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingEl = document.getElementById('loading');
+        const paymentFormEl = document.getElementById('paymentForm');
+        const errorToast = document.getElementById('errorToast');
+        
+        // 更新總額顯示
+        function updateTotal() {
+            totalAmountEl.textContent = `HK$ ${selectedAmount.toLocaleString('en-HK', {minimumFractionDigits: 2})}`;
+            submitBtn.disabled = selectedAmount <= 0;
+        }
+        
+        // 顯示錯誤
+        function showError(msg) {
+            errorToast.textContent = msg;
+            errorToast.style.display = 'block';
+            setTimeout(() => errorToast.style.display = 'none', 3000);
+        }
+        
+        // 金額按鈕點擊
+        amountBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                amountBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedAmount = parseInt(btn.dataset.amount);
+                customAmountInput.value = '';
+                updateTotal();
+            });
+        });
+        
+        // 自定義金額
+        customAmountInput.addEventListener('input', () => {
+            amountBtns.forEach(b => b.classList.remove('active'));
+            selectedAmount = parseFloat(customAmountInput.value) || 0;
+            updateTotal();
+        });
+        
+        // 支付方式選擇
+        payMethods.forEach(method => {
+            method.addEventListener('click', () => {
+                payMethods.forEach(m => m.classList.remove('active'));
+                method.classList.add('active');
+                selectedPayType = method.dataset.type;
+            });
+        });
+        
+        // 提交支付
+        submitBtn.addEventListener('click', async () => {
+            if (selectedAmount <= 0) {
+                showError('請選擇或輸入金額');
+                return;
+            }
+            
+            paymentFormEl.style.display = 'none';
+            loadingEl.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/payment/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: selectedAmount,
+                        payType: selectedPayType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data?.payUrl) {
+                    window.location.href = result.data.payUrl;
+                } else {
+                    throw new Error(result.error || '創建訂單失敗');
+                }
+            } catch (error) {
+                paymentFormEl.style.display = 'block';
+                loadingEl.style.display = 'none';
+                showError('支付創建失敗: ' + error.message);
+            }
+        });
+        
+        // 初始化
+        updateTotal();
+    </script>
+</body>
+</html>

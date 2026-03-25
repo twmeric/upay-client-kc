@@ -1,0 +1,13 @@
+{
+  "name": "kingchicken-worker-v2",
+  "version": "2.0.0",
+  "description": "King-Chicken Payment System v2 - Worker Backend",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "logs": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
