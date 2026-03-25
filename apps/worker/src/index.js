@@ -13,7 +13,7 @@ const CONFIG = {
   EASYLINK_BASE_URL: 'https://ts-api-pay.gnete.com.hk',
   CURRENCY: 'HKD',
   CORS_ORIGINS: [
-    'https://kingchicken-v2.pages.dev',
+    'https://easylink-v2.pages.dev',
     'https://upay-client-kc.pages.dev',
     'https://king-chicken.jkdcoding.com',
     'http://localhost:8788',
@@ -590,7 +590,7 @@ export default {
     
     // 健康檢查
     if (path === '/health') {
-      return jsonResponse({ status: 'ok', version: '2.1.0-saas' }, 200, origin);
+      return jsonResponse({ status: 'ok', version: '2.1.0-easylink' }, 200, origin);
     }
     
     // Webhook (不需要商戶識別)

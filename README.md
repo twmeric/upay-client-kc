@@ -106,7 +106,7 @@ cd ../../apps/web
 # 編輯各個 index.html 中的 API_BASE
 
 # 部署到 Pages
-npx wrangler pages deploy . --project-name=kingchicken-v2
+npx wrangler pages deploy . --project-name=easylink-v2
 ```
 
 ### 6. 配置 GitHub Actions (可選)
@@ -145,7 +145,7 @@ VALUES (
 
 ## 域名切換計劃
 
-1. 部署 v2 到 `kingchicken-v2.pages.dev`
+1. 部署 v2 到 `easylink-v2.pages.dev`
 2. 測試所有功能正常
 3. 更新 DNS 將 `king-chicken.jkdcoding.com` 指向新 Pages
 4. 舊系統保持運行作為備份
