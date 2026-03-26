@@ -737,27 +737,27 @@
         // 單獲加載統計數據
         async function loadStatistics() {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/client/${merchantCode}/dashboard`);
+                console.log('Loading statistics from:', `${API_BASE}/api/v1/${merchantCode}/admin/statistics`);
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/admin/statistics`);
                 
                 if (!response.ok) {
-                    throw new Error('Failed to load statistics');
+                    throw new Error(`Failed to load statistics: ${response.status}`);
                 }
 
                 const result = await response.json();
+                console.log('Statistics API response:', result);
                 
-                if (result.today) {
-                    // Convert dashboard data to stats format
-                    const stats = {
-                        todayRevenue: result.today.successAmount || 0,
-                        todayOrders: result.today.successCount || 0,
-                        successRate: result.today.orderCount > 0 
-                            ? ((result.today.successCount / result.today.orderCount) * 100).toFixed(1)
-                            : 0
-                    };
+                if (result.success && result.data) {
+                    const stats = result.data;
+                    console.log('Updating stats:', stats);
                     updateStats(stats);
+                } else {
+                    console.warn('Invalid response format:', result);
                 }
             } catch (error) {
                 console.error('Error loading statistics:', error);
+                // 顯示錯誤狀態但不影響用戶體驗
+                console.warn('Statistics load failed, showing default values');
             }
         }
 
@@ -826,14 +826,24 @@
         }
 
         function updateStats(stats) {
-            if (stats.todayRevenue !== undefined) {
-                document.getElementById('todayRevenue').textContent = `HK$ ${parseFloat(stats.todayRevenue).toFixed(2)}`;
+            console.log('updateStats called with:', stats);
+            
+            const revenueEl = document.getElementById('todayRevenue');
+            const countEl = document.getElementById('todayCount');
+            const rateEl = document.getElementById('successRate');
+            
+            if (stats.todayRevenue !== undefined && stats.todayRevenue !== null) {
+                const formattedRevenue = parseFloat(stats.todayRevenue).toLocaleString('en-HK', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                revenueEl.textContent = `HK$ ${formattedRevenue}`;
             }
-            if (stats.todayOrders !== undefined) {
-                document.getElementById('todayCount').textContent = stats.todayOrders;
+            if (stats.todayOrders !== undefined && stats.todayOrders !== null) {
+                countEl.textContent = stats.todayOrders;
             }
-            if (stats.successRate !== undefined) {
-                document.getElementById('successRate').textContent = `${stats.successRate}%`;
+            if (stats.successRate !== undefined && stats.successRate !== null) {
+                rateEl.textContent = `${stats.successRate}%`;
             }
         }
 
