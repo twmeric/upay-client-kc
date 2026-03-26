@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理後台</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -52,12 +53,18 @@
         .brand-logo {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            overflow: hidden;
+            padding: 4px;
+        }
+        .brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         
         .brand-text { display: flex; flex-direction: column; }
@@ -459,7 +466,7 @@
     <header class="header">
         <div class="header-top">
             <div class="brand">
-                <div class="brand-logo" id="brandLogo">🐔</div>
+                <div class="brand-logo" id="brandLogo"><img src="logo-kc.png" alt="King Chicken"></div>
                 <div class="brand-text">
                     <div class="brand-name" id="brandName">KING-CHICKEN</div>
                     <div class="brand-subtitle">ADMIN PORTAL</div>
@@ -651,9 +658,7 @@
                 if (result.success) {
                     const config = result.data;
                     document.getElementById('brandName').textContent = config.name;
-                    if (config.logo) {
-                        document.getElementById('brandLogo').textContent = config.logo;
-                    }
+                    // King Chicken 使用固定的 logo 图片
                     
                     // 更新支付連結
                     const payLink = `${FRONTEND_BASE}/payment/?merchant=${currentMerchant}`;

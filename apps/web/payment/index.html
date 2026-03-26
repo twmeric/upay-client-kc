@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>安全支付</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -41,15 +42,21 @@
         }
         
         .logo {
-            width: 64px;
-            height: 64px;
+            width: 80px;
+            height: 80px;
             background: white;
             border-radius: 50%;
             margin: 0 auto 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            overflow: hidden;
+            padding: 8px;
+        }
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         
         .title { font-size: 24px; font-weight: 600; }
@@ -259,7 +266,7 @@
     
     <div class="container">
         <div class="header">
-            <div class="logo" id="merchantLogo">🐔</div>
+            <div class="logo" id="merchantLogo"><img src="logo-kc.png" alt="King Chicken"></div>
             <div class="title" id="merchantName">Loading...</div>
             <div class="subtitle">安全支付</div>
         </div>
@@ -382,9 +389,7 @@
                 if (result.success) {
                     merchantConfig = result.data;
                     document.getElementById('merchantName').textContent = merchantConfig.name;
-                    if (merchantConfig.logo) {
-                        document.getElementById('merchantLogo').textContent = merchantConfig.logo;
-                    }
+                    // King Chicken 使用固定的 logo 图片
                     // 更新主題色
                     if (merchantConfig.theme === 'blue') {
                         document.documentElement.style.setProperty('--primary', '#1677FF');

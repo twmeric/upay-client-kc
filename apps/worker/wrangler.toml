@@ -12,8 +12,9 @@ database_id = "350594c4-4149-4519-b941-f9c0faf4121c"  # production database
 # Environment Variables
 [vars]
 ENVIRONMENT = "production"
-API_BASE_URL = "https://easylink-api-v2.your-account.workers.dev"
+API_BASE_URL = "https://easylink-api-v2.jimsbond007.workers.dev"
 FRONTEND_URL = "https://easylink-v2.pages.dev"
+EASYLINK_MCH_NO = "80403445499539"
 
 # Secrets (使用 wrangler secret put 設置):
 # 注意：這些是系統級 secrets，商戶級的 easylink 配置在數據庫中

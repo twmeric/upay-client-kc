@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King-Chicken 支付</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 
+                0 20px 60px -15px rgba(44, 36, 25, 0.15),
+                0 1px 3px rgba(44, 36, 25, 0.1);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            border: 1px solid rgba(201, 169, 97, 0.2);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--cream-dark) 0%, var(--beige) 100%);
+            padding: 40px 32px;
+            text-align: center;
+            border-bottom: 3px solid var(--hermes-orange);
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold), var(--hermes-orange));
+        }
+
+        .logo {
+            margin-bottom: 12px;
+        }
+
+        .logo img {
+            height: 90px;
+            width: auto;
+            display: block;
+            margin: 0 auto;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .brand-name {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-dark);
+            letter-spacing: 2px;
+            margin-top: 8px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 4px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .content {
+            padding: 36px 32px;
+        }
+
+        .section-title {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 1px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, var(--hermes-orange), var(--gold));
+            border-radius: 2px;
+        }
+
+        .amount-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .amount-btn {
+            padding: 18px 16px;
+            border: 2px solid var(--beige);
+            border-radius: 12px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 17px;
+            font-weight: 500;
+            color: var(--text-dark);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .amount-btn:hover {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.15);
+        }
+
+        .amount-btn.active {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-dark) 100%);
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+        }
+
+        .custom-amount {
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--beige);
+            border-radius: 12px;
+            padding: 0 16px;
+            background: var(--white);
+            transition: all 0.3s ease;
+        }
+
+        .custom-amount:focus-within {
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+        }
+
+        .custom-amount .prefix {
+            color: var(--hermes-orange);
+            font-weight: 600;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .custom-amount input {
+            flex: 1;
+            border: none;
+            padding: 16px 0;
+            font-size: 16px;
+            outline: none;
+            background: transparent;
+            color: var(--text-dark);
+        }
+
+        .custom-amount input::placeholder {
+            color: var(--text-light);
+        }
+
+        .pay-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .pay-method {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border: 2px solid var(--beige);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .pay-method:hover {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+        }
+
+        .pay-method.active {
+            border-color: var(--hermes-orange);
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.05) 0%, var(--white) 100%);
+        }
+
+        .pay-method .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .pay-method.up .icon { background: linear-gradient(135deg, #C41E3A 0%, #A01830 100%); color: white; }
+        .pay-method.ali .icon { background: linear-gradient(135deg, #1677FF 0%, #0958D9 100%); color: white; }
+        .pay-method.wx .icon { background: linear-gradient(135deg, #07C160 0%, #059B4C 100%); color: white; }
+
+        .pay-method .info {
+            flex: 1;
+        }
+
+        .pay-method .name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+
+        .pay-method .desc {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .pay-method .radio {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--beige);
+            border-radius: 50%;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .pay-method.active .radio {
+            border-color: var(--hermes-orange);
+            background: var(--hermes-orange);
+        }
+
+        .pay-method.active .radio::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .summary {
+            background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border: 1px solid var(--beige);
+        }
+
+        .summary-label {
+            font-size: 14px;
+            color: var(--text-medium);
+            font-weight: 500;
+        }
+
+        .summary-value {
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--hermes-orange);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+        }
+
+        .submit-btn:disabled {
+            background: linear-gradient(135deg, #ccc 0%, #999 100%);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 48px 32px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--beige);
+            border-top-color: var(--hermes-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: var(--text-medium);
+            font-size: 14px;
+        }
+
+        .error-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc2626;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px 32px;
+            background: linear-gradient(135deg, var(--cream-dark) 0%, var(--beige) 100%);
+            border-top: 1px solid var(--beige);
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .footer a {
+            color: var(--hermes-orange);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--hermes-dark);
+            text-decoration: underline;
+        }
+
+        /* Driver Section */
+        .driver-section {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.05) 0%, rgba(255, 107, 0, 0.02) 100%);
+            border: 1px dashed var(--hermes-orange);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .driver-section.hidden {
+            display: none;
+        }
+
+        .driver-select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--beige);
+            border-radius: 10px;
+            font-size: 15px;
+            background: var(--white);
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF6B00' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        .driver-select:focus {
+            outline: none;
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+        }
+
+        .driver-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-dark) 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .driver-badge .driver-icon {
+            width: 20px;
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .driver-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .driver-label::before {
+            content: '🚚';
+        }
+
+        @media (max-width: 480px) {
+            .payment-container {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .header {
+                padding: 32px 24px;
+            }
+            
+            .content {
+                padding: 28px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-toast" id="errorToast"></div>
+    
+    <div class="payment-container">
+        <div class="header">
+            <div class="logo">
+                <img src="logo-kc.png" alt="King Chicken">
+            </div>
+            <div class="brand-name">King-Chicken</div>
+            <div class="subtitle">SECURE PAYMENT</div>
+        </div>
+        
+        <div class="content" id="paymentForm">
+            <!-- Driver Selection -->
+            <div class="driver-section" id="driverSection">
+                <div class="driver-label">選擇配送司機</div>
+                <select class="driver-select" id="driverSelect">
+                    <option value="">-- 請選擇司機 --</option>
+                    <option value="KC001">KC001 - 張師傅</option>
+                    <option value="KC002">KC002 - 李師傅</option>
+                    <option value="KC003">KC003 - 王師傅</option>
+                </select>
+            </div>
+            <div class="driver-section hidden" id="autoDriverSection">
+                <div class="driver-label">配送司機</div>
+                <div class="driver-badge">
+                    <span class="driver-icon">🚚</span>
+                    <span id="autoDriverName">--</span>
+                </div>
+            </div>
+            
+            <div class="section-title">選擇金額</div>
+            <div class="amount-grid">
+                <button class="amount-btn" data-amount="100">HK$ 100</button>
+                <button class="amount-btn" data-amount="500">HK$ 500</button>
+                <button class="amount-btn" data-amount="1000">HK$ 1,000</button>
+                <button class="amount-btn" data-amount="2000">HK$ 2,000</button>
+            </div>
+            <div class="custom-amount">
+                <span class="prefix">HK$</span>
+                <input type="number" id="customAmount" placeholder="輸入自定義金額" min="1">
+            </div>
+            
+            <div class="section-title" style="margin-top: 28px;">選擇支付方式</div>
+            <div class="pay-methods">
+                <div class="pay-method up active" data-type="UP_OP">
+                    <div class="icon">銀</div>
+                    <div class="info">
+                        <div class="name">銀聯在線支付</div>
+                        <div class="desc">UnionPay Online Payment</div>
+                    </div>
+                    <div class="radio"></div>
+                </div>
+                <div class="pay-method ali" data-type="ALI_H5">
+                    <div class="icon">支</div>
+                    <div class="info">
+                        <div class="name">支付寶</div>
+                        <div class="desc">Alipay H5 Payment</div>
+                    </div>
+                    <div class="radio"></div>
+                </div>
+                <div class="pay-method wx" data-type="WX_H5">
+                    <div class="icon">微</div>
+                    <div class="info">
+                        <div class="name">微信支付</div>
+                        <div class="desc">WeChat Pay H5</div>
+                    </div>
+                    <div class="radio"></div>
+                </div>
+            </div>
+            
+            <div class="summary">
+                <span class="summary-label">訂單金額</span>
+                <span class="summary-value" id="totalAmount">HK$ 0.00</span>
+            </div>
+            
+            <button class="submit-btn" id="submitBtn">確認支付</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在創建訂單...</p>
+        </div>
+        
+        <div class="footer">
+            <a href="./login.html">管理後台</a> · 安全支付保障
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://easylink-api-v2.jimsbond007.workers.dev';
+        const merchantCode = 'KC';
+        
+        // Driver data
+        const driverData = {
+            'KC001': { name: '張師傅', phone: '9123-4567' },
+            'KC002': { name: '李師傅', phone: '9234-5678' },
+            'KC003': { name: '王師傅', phone: '9345-6789' }
+        };
+        
+        let selectedAmount = 0;
+        let selectedPayType = 'UP_OP';
+        let selectedDriver = '';
+        
+        const amountBtns = document.querySelectorAll('.amount-btn');
+        const customAmountInput = document.getElementById('customAmount');
+        const payMethods = document.querySelectorAll('.pay-method');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingEl = document.getElementById('loading');
+        const paymentFormEl = document.getElementById('paymentForm');
+        const errorToast = document.getElementById('errorToast');
+        
+        function updateTotal() {
+            totalAmountEl.textContent = `HK$ ${selectedAmount.toLocaleString('en-HK', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            submitBtn.disabled = selectedAmount <= 0;
+        }
+        
+        // Check URL for driver parameter
+        function initDriverFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const driverCode = urlParams.get('driver');
+            
+            if (driverCode && driverData[driverCode]) {
+                // Auto-select from URL
+                selectedDriver = driverCode;
+                document.getElementById('driverSection').classList.add('hidden');
+                document.getElementById('autoDriverSection').classList.remove('hidden');
+                document.getElementById('autoDriverName').textContent = 
+                    `${driverCode} - ${driverData[driverCode].name}`;
+            } else {
+                // Manual selection
+                document.getElementById('driverSelect').addEventListener('change', (e) => {
+                    selectedDriver = e.target.value;
+                });
+            }
+        }
+        
+        function showError(msg) {
+            errorToast.textContent = msg;
+            errorToast.style.display = 'block';
+            setTimeout(() => errorToast.style.display = 'none', 3000);
+        }
+        
+        amountBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                amountBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedAmount = parseInt(btn.dataset.amount);
+                customAmountInput.value = '';
+                updateTotal();
+            });
+        });
+        
+        customAmountInput.addEventListener('input', () => {
+            amountBtns.forEach(b => b.classList.remove('active'));
+            selectedAmount = parseFloat(customAmountInput.value) || 0;
+            updateTotal();
+        });
+        
+        payMethods.forEach(method => {
+            method.addEventListener('click', () => {
+                payMethods.forEach(m => m.classList.remove('active'));
+                method.classList.add('active');
+                selectedPayType = method.dataset.type;
+            });
+        });
+        
+        submitBtn.addEventListener('click', async () => {
+            if (selectedAmount <= 0) {
+                showError('請選擇或輸入金額');
+                return;
+            }
+            
+            paymentFormEl.style.display = 'none';
+            loadingEl.style.display = 'block';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/payment/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: selectedAmount,
+                        payType: selectedPayType,
+                        subject: 'King-Chicken Payment'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data?.payUrl) {
+                    window.location.href = result.data.payUrl;
+                } else {
+                    throw new Error(result.error || '創建支付訂單失敗');
+                }
+            } catch (error) {
+                paymentFormEl.style.display = 'block';
+                loadingEl.style.display = 'none';
+                submitBtn.disabled = false;
+                showError(error.message || '網絡錯誤，請重試');
+            }
+        });
+        
+        // Initialize
+        initDriverFromURL();
+        updateTotal();
+    </script>
+</body>
+</html>

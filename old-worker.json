@@ -1,0 +1,46 @@
+{
+  "id": "f68c95b8-5ef3-4c53-b526-7b8bd219fed8",
+  "number": 1,
+  "metadata": {
+    "created_on": "2026-03-22T03:01:45.730214Z",
+    "source": "wrangler",
+    "author_id": "adbf209983bfe67f00afdf5e7bd00af9",
+    "author_email": "twmeric@gmail.com",
+    "has_preview": true
+  },
+  "annotations": {
+    "workers/triggered_by": "upload"
+  },
+  "resources": {
+    "script": {
+      "etag": "4e1c293491f70e3573c0eebcb2e333541a62c46508fc61a8d79c851b51419924",
+      "handlers": [
+        "fetch",
+        "scheduled"
+      ],
+      "last_deployed_from": "wrangler"
+    },
+    "script_runtime": {
+      "compatibility_date": "2024-01-01",
+      "usage_model": "standard"
+    },
+    "bindings": [
+      {
+        "database_id": "350594c4-4149-4519-b941-f9c0faf4121c",
+        "id": "350594c4-4149-4519-b941-f9c0faf4121c",
+        "name": "DB",
+        "type": "d1"
+      },
+      {
+        "name": "EASYLINK_BASE_URL",
+        "text": "https://api-pay.gnete.com.hk",
+        "type": "plain_text"
+      },
+      {
+        "name": "ENVIRONMENT",
+        "text": "production",
+        "type": "plain_text"
+      }
+    ]
+  }
+}

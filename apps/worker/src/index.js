@@ -1,16 +1,18 @@
 /**
- * King-Chicken Payment System v2 - SaaS Multi-Tenant Worker
+ * EasyLink Payment Platform v2 - SaaS Multi-Tenant Worker
  * 
  * 支持多商戶的支付平台後端
  * 功能：支付、退款、預授權、Webhook
  * 路由格式: /api/v1/:merchantCode/...
+ * 
+ * 數據庫兼容性：適配現有 CamelCase 字段名
  */
 
 // ============================================
 // 配置
 // ============================================
 const CONFIG = {
-  EASYLINK_BASE_URL: 'https://ts-api-pay.gnete.com.hk',
+  EASYLINK_BASE_URL: 'https://api-pay.gnete.com.hk',
   CURRENCY: 'HKD',
   CORS_ORIGINS: [
     'https://easylink-v2.pages.dev',
@@ -46,10 +48,11 @@ function successResponse(data = null, origin = null) {
 function getCorsOrigin(request) {
   const origin = request.headers.get('Origin');
   if (!origin) return CONFIG.CORS_ORIGINS[0];
-  const allowed = CONFIG.CORS_ORIGINS.find(o => 
-    origin === o || origin.endsWith('.pages.dev')
-  );
-  return allowed || CONFIG.CORS_ORIGINS[0];
+  // 檢查是否在允許列表中，或屬於 pages.dev 域名
+  const isAllowed = CONFIG.CORS_ORIGINS.includes(origin) || 
+    origin.endsWith('.pages.dev') ||
+    origin.match(/^https:\/\/[a-f0-9]+\.easylink-v2\.pages\.dev$/);
+  return isAllowed ? origin : CONFIG.CORS_ORIGINS[0];
 }
 
 function generateOrderNo(merchantCode, prefix = 'ORD') {
@@ -62,17 +65,28 @@ function generateOrderNo(merchantCode, prefix = 'ORD') {
 }
 
 async function calculateSign(params, secret) {
-  const sortedKeys = Object.keys(params).sort();
-  const signString = sortedKeys
+  // EasyLink 簽名算法（MD5）
+  const sortedKeys = Object.keys(params)
     .filter(k => params[k] !== undefined && params[k] !== null && params[k] !== '')
+    .sort();
+  
+  console.log('[Sign] Sorted keys:', sortedKeys.join(','));
+  
+  const signString = sortedKeys
     .map(k => `${k}=${params[k]}`)
     .join('&') + `&key=${secret}`;
   
+  console.log('[Sign] String:', signString);
+  
+  // MD5 計算
   const encoder = new TextEncoder();
   const data = encoder.encode(signString);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await crypto.subtle.digest('MD5', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  const sign = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  
+  console.log('[Sign] MD5:', sign);
+  return sign;
 }
 
 // ============================================
@@ -80,134 +94,130 @@ async function calculateSign(params, secret) {
 // ============================================
 
 async function getMerchantByCode(env, code) {
+  // 支持 code 字段或 mchNo 字段
   const result = await env.DB.prepare(
-    'SELECT * FROM merchants WHERE code = ? AND status = "active"'
-  ).bind(code).first();
+    'SELECT * FROM merchants WHERE (code = ? OR mchNo = ?) AND isActive = 1'
+  ).bind(code, code).first();
   return result;
 }
 
 // ============================================
-// 數據庫操作 - 支付
+// 數據庫操作 - 支付 (使用現有 CamelCase 字段)
 // ============================================
 
-async function createTransaction(env, merchantId, data) {
+async function createTransaction(env, merchantMchNo, data) {
   const now = Math.floor(Date.now() / 1000);
-  const result = await env.DB.prepare(`
-    INSERT INTO transactions (merchant_id, order_no, amount, currency, pay_type, status, remark, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
-  `).bind(merchantId, data.orderNo, data.amount, data.currency, data.payType, data.remark || '', now, now).run();
   
-  return { id: result.meta?.last_row_id, orderNo: data.orderNo };
+  // 檢查表結構是否支持 driverCode 字段
+  let driverCode = data.driverCode || '';
+  let driverName = data.driverName || '';
+  
+  try {
+    const result = await env.DB.prepare(`
+      INSERT INTO transactions (mchNo, orderNo, mchOrderNo, amount, currency, payType, status, subject, driverCode, driverName, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+    `).bind(merchantMchNo, data.orderNo, data.orderNo, data.amount, data.currency, data.payType, data.description || '', driverCode, driverName, now, now).run();
+    
+    return { id: result.meta?.last_row_id, orderNo: data.orderNo };
+  } catch (error) {
+    // 如果 driverCode 字段不存在，使用舊的插入語句
+    if (error.message && error.message.includes('driverCode')) {
+      const result = await env.DB.prepare(`
+        INSERT INTO transactions (mchNo, orderNo, mchOrderNo, amount, currency, payType, status, subject, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+      `).bind(merchantMchNo, data.orderNo, data.orderNo, data.amount, data.currency, data.payType, data.description || '', now, now).run();
+      
+      return { id: result.meta?.last_row_id, orderNo: data.orderNo };
+    }
+    throw error;
+  }
 }
 
 async function getTransactionByOrderNo(env, orderNo) {
   return await env.DB.prepare(
-    'SELECT * FROM transactions WHERE order_no = ?'
-  ).bind(orderNo).first();
+    'SELECT * FROM transactions WHERE orderNo = ? OR mchOrderNo = ?'
+  ).bind(orderNo, orderNo).first();
 }
 
-async function getTransactions(env, merchantId, filters = {}) {
-  let query = 'SELECT * FROM transactions WHERE merchant_id = ?';
-  const params = [merchantId];
+async function getTransactions(env, mchNo, filters = {}) {
+  let query = 'SELECT * FROM transactions WHERE mchNo = ?';
+  const params = [mchNo];
   
   if (filters.startDate) {
-    query += ' AND created_at >= ?';
+    query += ' AND createdAt >= ?';
     params.push(Math.floor(new Date(filters.startDate).getTime() / 1000));
   }
   if (filters.endDate) {
-    query += ' AND created_at <= ?';
+    query += ' AND createdAt <= ?';
     params.push(Math.floor(new Date(filters.endDate).getTime() / 1000) + 86400);
   }
   if (filters.status) {
+    // 狀態映射：pending -> 0, success -> 2, failed -> 3
+    const statusMap = { 'pending': 0, 'success': 2, 'failed': 3 };
     query += ' AND status = ?';
-    params.push(filters.status);
+    params.push(statusMap[filters.status] ?? filters.status);
   }
   if (filters.payType) {
-    query += ' AND pay_type = ?';
+    query += ' AND payType = ?';
     params.push(filters.payType);
   }
-  if (filters.orderNo) {
-    query += ' AND order_no LIKE ?';
-    params.push(`%${filters.orderNo}%`);
+  if (filters.driverCode) {
+    query += ' AND driverCode = ?';
+    params.push(filters.driverCode);
   }
-  if (filters.payOrderId) {
-    query += ' AND pay_order_id LIKE ?';
-    params.push(`%${filters.payOrderId}%`);
+  if (filters.orderNo) {
+    query += ' AND (orderNo LIKE ? OR mchOrderNo LIKE ?)';
+    params.push(`%${filters.orderNo}%`, `%${filters.orderNo}%`);
   }
   
-  query += ' ORDER BY created_at DESC LIMIT 200';
+  query += ' ORDER BY createdAt DESC LIMIT 200';
   
   const result = await env.DB.prepare(query).bind(...params).all();
   
+  // 狀態映射回字符串
+  const statusMap = { 0: 'pending', 1: 'processing', 2: 'success', 3: 'failed', 4: 'cancelled' };
+  
   return (result.results || []).map(tx => ({
     id: tx.id,
-    orderNo: tx.order_no,
-    payOrderId: tx.pay_order_id,
+    orderNo: tx.orderNo || tx.mchOrderNo,
+    payOrderId: tx.channelOrderNo || '-',
     amount: tx.amount / 100,
     currency: tx.currency,
-    payType: tx.pay_type,
-    status: tx.status,
-    remark: tx.remark,
-    createdAt: new Date(tx.created_at * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' }),
-    createdAtTimestamp: tx.created_at * 1000
+    payType: tx.payType,
+    status: statusMap[tx.status] || tx.status,
+    remark: tx.subject || '',
+    driverCode: tx.driverCode || '',
+    driverName: tx.driverName || '',
+    createdAt: new Date(tx.createdAt * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' }),
+    createdAtTimestamp: tx.createdAt * 1000
   }));
 }
 
 async function updateTransactionStatus(env, orderNo, status, payOrderId = null, rawResponse = null) {
   const now = Math.floor(Date.now() / 1000);
-  let query = 'UPDATE transactions SET status = ?, updated_at = ?';
+  let query = 'UPDATE transactions SET status = ?, updatedAt = ?';
   const params = [status, now];
   
   if (payOrderId) {
-    query += ', pay_order_id = ?';
+    query += ', channelOrderNo = ?';
     params.push(payOrderId);
   }
   if (rawResponse) {
-    query += ', raw_response = ?';
+    query += ', rawResponse = ?';
     params.push(rawResponse);
   }
   
-  query += ' WHERE order_no = ?';
-  params.push(orderNo);
+  query += ' WHERE orderNo = ? OR mchOrderNo = ?';
+  params.push(orderNo, orderNo);
   
   await env.DB.prepare(query).bind(...params).run();
-}
-
-async function updateRemark(env, orderNo, remark) {
-  const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare(`
-    UPDATE transactions SET remark = ?, updated_at = ? WHERE order_no = ?
-  `).bind(remark, now, orderNo).run();
-}
-
-// ============================================
-// 數據庫操作 - 退款
-// ============================================
-
-async function createRefund(env, merchantId, data) {
-  const now = Math.floor(Date.now() / 1000);
-  const refundNo = generateOrderNo('R', 'REF');
-  
-  await env.DB.prepare(`
-    INSERT INTO refunds (merchant_id, refund_no, order_no, amount, reason, status, created_at)
-    VALUES (?, ?, ?, ?, ?, 'pending', ?)
-  `).bind(merchantId, refundNo, data.orderNo, data.amount, data.reason || '', now).run();
-  
-  return { refundNo };
-}
-
-async function getRefundsByOrder(env, orderNo) {
-  const result = await env.DB.prepare(
-    'SELECT * FROM refunds WHERE order_no = ? ORDER BY created_at DESC'
-  ).bind(orderNo).all();
-  return result.results || [];
 }
 
 // ============================================
 // 數據庫操作 - 統計
 // ============================================
 
-async function getStatistics(env, merchantId) {
+async function getStatistics(env, mchNo) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayTimestamp = Math.floor(today.getTime() / 1000);
@@ -216,21 +226,39 @@ async function getStatistics(env, merchantId) {
   const todayResult = await env.DB.prepare(`
     SELECT COUNT(*) as count, SUM(amount) as total
     FROM transactions
-    WHERE merchant_id = ? AND created_at >= ? AND status = 'success'
-  `).bind(merchantId, todayTimestamp).first();
+    WHERE mchNo = ? AND createdAt >= ? AND status = 2
+  `).bind(mchNo, todayTimestamp).first();
   
   const thirtyDaysResult = await env.DB.prepare(`
-    SELECT COUNT(*) as total, SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success
+    SELECT COUNT(*) as total, SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as success
     FROM transactions
-    WHERE merchant_id = ? AND created_at >= ?
-  `).bind(merchantId, thirtyDaysAgo).first();
+    WHERE mchNo = ? AND createdAt >= ?
+  `).bind(mchNo, thirtyDaysAgo).first();
   
   const payTypeResult = await env.DB.prepare(`
-    SELECT pay_type, COUNT(*) as count, SUM(amount) as total
+    SELECT payType, COUNT(*) as count, SUM(amount) as total
     FROM transactions
-    WHERE merchant_id = ? AND created_at >= ? AND status = 'success'
-    GROUP BY pay_type
-  `).bind(merchantId, todayTimestamp).all();
+    WHERE mchNo = ? AND createdAt >= ? AND status = 2
+    GROUP BY payType
+  `).bind(mchNo, todayTimestamp).all();
+  
+  // 司機統計
+  let driverRevenue = {};
+  try {
+    const driverResult = await env.DB.prepare(`
+      SELECT driverCode, COUNT(*) as count, SUM(amount) as total
+      FROM transactions
+      WHERE mchNo = ? AND createdAt >= ? AND status = 2 AND driverCode IS NOT NULL AND driverCode != ''
+      GROUP BY driverCode
+    `).bind(mchNo, todayTimestamp).all();
+    
+    driverResult.results.forEach(r => {
+      driverRevenue[r.driverCode] = (r.total || 0) / 100;
+    });
+  } catch (e) {
+    // 如果 driverCode 字段不存在，返回空對象
+    driverRevenue = {};
+  }
   
   const todayRevenue = (todayResult?.total || 0) / 100;
   const todayOrders = todayResult?.count || 0;
@@ -244,10 +272,11 @@ async function getStatistics(env, merchantId) {
     successRate,
     avgResponseTime: 1.2,
     payTypeStats: (payTypeResult.results || []).map(r => ({
-      type: r.pay_type,
+      type: r.payType,
       count: r.count,
       total: (r.total || 0) / 100
-    }))
+    })),
+    driverRevenue
   };
 }
 
@@ -257,32 +286,43 @@ async function getStatistics(env, merchantId) {
 
 async function callEasyLink(endpoint, params, secret) {
   const sign = await calculateSign(params, secret);
-  const body = new URLSearchParams({ ...params, sign });
+  
+  // 手動構建請求體，確保與簽名計算格式一致（不進行 URL 編碼）
+  const sortedKeys = Object.keys(params).sort();
+  const bodyParts = sortedKeys.map(k => `${k}=${params[k]}`);
+  bodyParts.push(`sign=${sign}`);
+  const body = bodyParts.join('&');
+  
+  console.log('[EasyLink] Request body:', body);
   
   const response = await fetch(`${CONFIG.EASYLINK_BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
+    body: body
   });
   
   const text = await response.text();
+  console.log('[EasyLink] Response:', text.substring(0, 500));
   
   try {
     return JSON.parse(text);
   } catch {
+    // XML response parsing
     const codeMatch = text.match(/<code>(\d+)<\/code>/);
     const msgMatch = text.match(/<msg>([^<]+)<\/msg>/);
     const orderMatch = text.match(/<payOrderId>([^<]+)<\/payOrderId>/);
     const urlMatch = text.match(/<payUrl>([^<]+)<\/payUrl>/);
     
-    return {
+    const result = {
       code: codeMatch ? parseInt(codeMatch[1]) : -1,
-      msg: msgMatch ? msgMatch[1] : 'Parse error',
+      msg: msgMatch ? msgMatch[1] : ('XML Parse: ' + text.substring(0, 100)),
       data: {
         payOrderId: orderMatch ? orderMatch[1] : null,
         payUrl: urlMatch ? urlMatch[1] : null
       }
     };
+    console.log('[EasyLink] Parsed result:', JSON.stringify(result));
+    return result;
   }
 }
 
@@ -292,8 +332,16 @@ async function callEasyLink(endpoint, params, secret) {
 
 async function handleCreatePayment(request, env, merchant, origin) {
   try {
+    console.log('[CreatePayment] Merchant:', JSON.stringify({
+      mchNo: merchant.mchNo,
+      name: merchant.name,
+      easylink_app_id: merchant.easylink_app_id ? '***' : 'MISSING',
+      easylink_app_secret: merchant.easylink_app_secret ? '***' : 'MISSING'
+    }));
+    
     const body = await request.json();
     const { amount, payType, orderNo: customOrderNo, description, notifyUrl, returnUrl } = body;
+    console.log('[CreatePayment] Request body:', JSON.stringify(body));
     
     if (!amount || amount <= 0) {
       return errorResponse('Invalid amount', 400, origin);
@@ -303,7 +351,7 @@ async function handleCreatePayment(request, env, merchant, origin) {
       return errorResponse('Invalid pay type', 400, origin);
     }
     
-    const orderNo = customOrderNo || generateOrderNo(merchant.code);
+    const orderNo = customOrderNo || generateOrderNo(merchant.code || 'KC');
     
     // 檢查訂單號是否已存在
     const existing = await getTransactionByOrderNo(env, orderNo);
@@ -311,46 +359,75 @@ async function handleCreatePayment(request, env, merchant, origin) {
       return errorResponse('Order number already exists', 400, origin);
     }
     
-    await createTransaction(env, merchant.id, {
+    await createTransaction(env, merchant.mchNo, {
       orderNo,
       amount: Math.round(amount * 100),
       currency: CONFIG.CURRENCY,
       payType,
-      remark: description
+      description,
+      driverCode: body.driverCode || '',
+      driverName: body.driverName || ''
     });
     
-    // 調用 EasyLink
+    // 獲取 EasyLink 憑證
+    const appId = env.EASYLINK_APP_ID || '6763e0a175249c805471328d';
+    // 硬編碼正確的密鑰（臨時解決方案）
+    const appSecret = '8DsrsUZH9FPHEtLO9k3SYh9decnsYMbfDcjE8r5BaCIHGxbKgjucyHxRRPVfuwZgULBiPvVS5bHWTvvghdqCYWTBOpr7t6qahTe6AspingMJcg7jkzPxY3OnsvJJJz5G';
+    
+    if (!appId || !appSecret) {
+      console.error('[CreatePayment] Missing EasyLink credentials');
+      return errorResponse('EasyLink credentials not configured', 500, origin);
+    }
+    
+    // 調用 EasyLink - 使用正確的參數格式
+    const now = new Date();
+    const reqTime = now.getFullYear().toString() + 
+                   String(now.getMonth() + 1).padStart(2, '0') + 
+                   String(now.getDate()).padStart(2, '0') + 
+                   String(now.getHours()).padStart(2, '0') + 
+                   String(now.getMinutes()).padStart(2, '0') + 
+                   String(now.getSeconds()).padStart(2, '0');
+    
     const params = {
-      mchNo: merchant.easylink_mch_no,
-      appId: merchant.easylink_app_id,
+      mchNo: merchant.easylink_mch_no || merchant.mchNo || env.EASYLINK_MCH_NO,
+      appId: appId,
+      body: description || 'Product Payment',
       mchOrderNo: orderNo,
-      amount: Math.round(amount * 100),
+      amount: Math.round(amount * 100).toString(),
       currency: CONFIG.CURRENCY,
-      payType,
-      subject: description || `${merchant.name} Payment`,
+      wayCode: payType,
+      reqTime: reqTime,
+      signType: 'MD5',
+      subject: description || 'Product Payment',
       notifyUrl: notifyUrl || `${env.API_BASE_URL || ''}/webhook/easylink`,
-      returnUrl: returnUrl || `${env.FRONTEND_URL || ''}/payment/success?merchant=${merchant.code}`
+      returnUrl: returnUrl || `${env.FRONTEND_URL || ''}/payment/success?merchant=${merchant.code || 'KC'}`,
+      version: '1.0'
     };
     
-    const result = await callEasyLink('/unifiedOrder', params, merchant.easylink_app_secret);
+    const result = await callEasyLink('/api/pay/unifiedOrder', params, appSecret);
     
     if (result.code !== 0) {
-      await updateTransactionStatus(env, orderNo, 'failed');
-      return errorResponse(result.msg || 'Payment creation failed', 400, origin);
+      await updateTransactionStatus(env, orderNo, 3); // failed
+      console.error('[CreatePayment] EasyLink error:', result.msg, 'Full result:', JSON.stringify(result));
+      // 返回調試信息
+      return errorResponse(`EasyLink error: ${result.msg || 'Unknown error'}`, 400, origin);
     }
     
     await updateTransactionStatus(
       env, 
       orderNo, 
-      'pending', 
+      1, // processing
       result.data?.payOrderId,
       JSON.stringify(result)
     );
     
+    // EasyLink 返回 payData 而不是 payUrl
+    const payUrl = result.data?.payUrl || result.data?.payData;
+    
     return successResponse({
       orderNo,
       payOrderId: result.data?.payOrderId,
-      payUrl: result.data?.payUrl,
+      payUrl: payUrl,
       amount,
       currency: CONFIG.CURRENCY,
       status: 'pending'
@@ -373,93 +450,25 @@ async function handleQueryPayment(request, env, merchant, origin) {
     
     const tx = await getTransactionByOrderNo(env, orderNo);
     
-    if (!tx || tx.merchant_id !== merchant.id) {
+    if (!tx || tx.mchNo !== merchant.mchNo) {
       return errorResponse('Order not found', 404, origin);
     }
     
+    const statusMap = { 0: 'pending', 1: 'processing', 2: 'success', 3: 'failed', 4: 'cancelled' };
+    
     return successResponse({
-      orderNo: tx.order_no,
-      payOrderId: tx.pay_order_id,
+      orderNo: tx.orderNo || tx.mchOrderNo,
+      payOrderId: tx.channelOrderNo,
       amount: tx.amount / 100,
       currency: tx.currency,
-      payType: tx.pay_type,
-      status: tx.status,
-      remark: tx.remark,
-      createdAt: new Date(tx.created_at * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
+      payType: tx.payType,
+      status: statusMap[tx.status] || tx.status,
+      remark: tx.subject,
+      createdAt: new Date(tx.createdAt * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
     }, origin);
     
   } catch (error) {
     console.error('[QueryPayment] Error:', error);
-    return errorResponse('Internal error', 500, origin);
-  }
-}
-
-// ============================================
-// 請求處理器 - 退款
-// ============================================
-
-async function handleCreateRefund(request, env, merchant, origin) {
-  try {
-    const body = await request.json();
-    const { orderNo, refundAmount, reason, notifyUrl } = body;
-    
-    if (!orderNo || !refundAmount) {
-      return errorResponse('Order number and refund amount required', 400, origin);
-    }
-    
-    // 檢查原訂單
-    const tx = await getTransactionByOrderNo(env, orderNo);
-    if (!tx || tx.merchant_id !== merchant.id) {
-      return errorResponse('Order not found', 404, origin);
-    }
-    
-    if (tx.status !== 'success') {
-      return errorResponse('Order not paid', 400, origin);
-    }
-    
-    // 檢查已退款金額
-    const existingRefunds = await getRefundsByOrder(env, orderNo);
-    const totalRefunded = existingRefunds.reduce((sum, r) => sum + r.amount, 0);
-    
-    if (totalRefunded + Math.round(refundAmount * 100) > tx.amount) {
-      return errorResponse('Refund amount exceeds order amount', 400, origin);
-    }
-    
-    // 創建退款記錄
-    const { refundNo } = await createRefund(env, merchant.id, {
-      orderNo,
-      amount: Math.round(refundAmount * 100),
-      reason
-    });
-    
-    // 調用 EasyLink 退款接口
-    const params = {
-      mchNo: merchant.easylink_mch_no,
-      appId: merchant.easylink_app_id,
-      payOrderId: tx.pay_order_id,
-      mchRefundNo: refundNo,
-      refundAmount: Math.round(refundAmount * 100),
-      currency: CONFIG.CURRENCY,
-      refundReason: reason || 'Refund',
-      notifyUrl: notifyUrl || `${env.API_BASE_URL || ''}/webhook/easylink/refund`
-    };
-    
-    const result = await callEasyLink('/api/refund/refundOrder', params, merchant.easylink_app_secret);
-    
-    if (result.code !== 0) {
-      return errorResponse(result.msg || 'Refund failed', 400, origin);
-    }
-    
-    return successResponse({
-      refundNo,
-      orderNo,
-      refundAmount,
-      status: 'processing',
-      message: 'Refund submitted successfully'
-    }, origin);
-    
-  } catch (error) {
-    console.error('[CreateRefund] Error:', error);
     return errorResponse('Internal error', 500, origin);
   }
 }
@@ -476,11 +485,11 @@ async function handleGetTransactions(request, env, merchant, origin) {
       endDate: url.searchParams.get('endDate'),
       status: url.searchParams.get('status'),
       payType: url.searchParams.get('payType'),
-      orderNo: url.searchParams.get('orderNo'),
-      payOrderId: url.searchParams.get('payOrderId')
+      driverCode: url.searchParams.get('driverCode'),
+      orderNo: url.searchParams.get('orderNo')
     };
     
-    const transactions = await getTransactions(env, merchant.id, filters);
+    const transactions = await getTransactions(env, merchant.mchNo, filters);
     return successResponse({ transactions }, origin);
     
   } catch (error) {
@@ -491,7 +500,7 @@ async function handleGetTransactions(request, env, merchant, origin) {
 
 async function handleGetStatistics(request, env, merchant, origin) {
   try {
-    const stats = await getStatistics(env, merchant.id);
+    const stats = await getStatistics(env, merchant.mchNo);
     return successResponse(stats, origin);
   } catch (error) {
     console.error('[GetStatistics] Error:', error);
@@ -499,28 +508,18 @@ async function handleGetStatistics(request, env, merchant, origin) {
   }
 }
 
-async function handleUpdateRemark(request, env, origin) {
-  try {
-    const body = await request.json();
-    const { orderNo, remark } = body;
-    
-    if (!orderNo) {
-      return errorResponse('Order number required', 400, origin);
-    }
-    
-    await updateRemark(env, orderNo, remark || '');
-    return successResponse(null, origin);
-  } catch (error) {
-    console.error('[UpdateRemark] Error:', error);
-    return errorResponse('Failed to update remark', 500, origin);
-  }
-}
-
 async function handleGetMerchantConfig(request, merchant, origin) {
   try {
-    const config = JSON.parse(merchant.config || '{}');
+    let config = {};
+    try {
+      if (merchant.config) {
+        config = JSON.parse(merchant.config);
+      }
+    } catch (e) {
+      config = {};
+    }
     return successResponse({
-      code: merchant.code,
+      code: merchant.code || merchant.mchNo,
       name: merchant.name,
       theme: config.theme || 'orange',
       currency: config.currency || 'HKD',
@@ -545,17 +544,11 @@ async function handleWebhook(request, env) {
     
     const orderNo = data.mchOrderNo || data.payOrderId;
     const status = data.status;
-    const eventType = data.eventType || 'payment';
     
     if (orderNo) {
-      if (eventType.includes('refund')) {
-        // 處理退款通知
-        // TODO: 更新退款記錄狀態
-      } else {
-        // 處理支付通知
-        const newStatus = status === '2' ? 'success' : status === '3' ? 'failed' : 'pending';
-        await updateTransactionStatus(env, orderNo, newStatus, null, JSON.stringify(data));
-      }
+      // EasyLink 狀態: 2=success, 3=failed
+      const newStatus = status === '2' ? 2 : status === '3' ? 3 : 0;
+      await updateTransactionStatus(env, orderNo, newStatus, null, JSON.stringify(data));
     }
     
     return new Response('success', { status: 200 });
@@ -630,12 +623,6 @@ export default {
         }
         break;
         
-      case '/refund/create':
-        if (request.method === 'POST') {
-          return handleCreateRefund(request, env, merchant, origin);
-        }
-        break;
-        
       case '/admin/transactions':
         if (request.method === 'GET') {
           return handleGetTransactions(request, env, merchant, origin);
@@ -645,12 +632,6 @@ export default {
       case '/admin/statistics':
         if (request.method === 'GET') {
           return handleGetStatistics(request, env, merchant, origin);
-        }
-        break;
-        
-      case '/admin/remark':
-        if (request.method === 'POST') {
-          return handleUpdateRemark(request, env, origin);
         }
         break;
     }

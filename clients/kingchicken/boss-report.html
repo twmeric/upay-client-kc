@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King-Chicken 老闆摯愛 - 每日報告</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: var(--cream);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
+            border-bottom: 1px solid var(--beige);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(44, 36, 25, 0.08);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--gold), var(--hermes-orange));
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand img {
+            height: 48px;
+            width: auto;
+        }
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-name {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-dark);
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--text-light);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logout-btn {
+            padding: 10px 18px;
+            background: transparent;
+            color: var(--text-medium);
+            border: 2px solid var(--beige);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 24px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: linear-gradient(180deg, var(--hermes-orange), var(--gold));
+            border-radius: 2px;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 16px;
+            border: 1px solid var(--beige);
+            box-shadow: 0 4px 20px rgba(44, 36, 25, 0.06);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--beige);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--hermes-orange), var(--hermes-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 107, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--cream);
+            color: var(--text-medium);
+            border: 1px solid var(--beige);
+        }
+
+        .btn-secondary:hover {
+            background: var(--beige);
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-medium);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--beige);
+            border-radius: 8px;
+            font-size: 15px;
+            background: var(--white);
+            color: var(--text-dark);
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.08);
+        }
+
+        .recipient-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .recipient-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--cream);
+            border-radius: 12px;
+            border: 1px solid var(--beige);
+        }
+
+        .recipient-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--hermes-orange);
+        }
+
+        .recipient-info {
+            flex: 1;
+        }
+
+        .recipient-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .recipient-phone {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--beige);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--hermes-orange);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        .report-preview {
+            background: var(--cream);
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            border: 1px solid var(--beige);
+            color: var(--text-dark);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .status-message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(22, 163, 74, 0.2);
+        }
+
+        .status-message.error {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card-mini {
+            background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--beige);
+            text-align: center;
+        }
+
+        .stat-card-mini .label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card-mini .value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--hermes-orange);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 16px;
+            }
+
+            .nav-menu {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .main-container {
+                padding: 16px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="brand">
+                <img src="logo-kc.png" alt="King-Chicken">
+                <div class="brand-text">
+                    <span class="brand-name">KING-CHICKEN</span>
+                    <span class="brand-subtitle">Admin Portal</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <a href="admin.html" class="nav-link" style="background: var(--cream-dark); color: var(--text-medium); border: 1px solid var(--beige);">交易記錄</a>
+                <a href="boss-report.html" class="nav-link" style="background: var(--hermes-orange); color: white;">管理者報告</a>
+                <a href="drivers.html" class="nav-link" style="background: var(--cream-dark); color: var(--text-medium); border: 1px solid var(--beige);">司機管理</a>
+            </nav>
+            <div class="header-actions">
+                <button class="logout-btn" onclick="logout()">登出</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <h1 class="page-title">管理者報告 - WhatsApp 自動通報</h1>
+
+        <!-- 今日概覽 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📊 今日業務概覽</div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="refreshStats()">🔄 刷新</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="stats-grid">
+                    <div class="stat-card-mini">
+                        <div class="label">今日收入</div>
+                        <div class="value" id="todayRevenue">HK$ 0</div>
+                    </div>
+                    <div class="stat-card-mini">
+                        <div class="label">訂單數</div>
+                        <div class="value" id="todayOrders">0</div>
+                    </div>
+                    <div class="stat-card-mini">
+                        <div class="label">成功率</div>
+                        <div class="value" id="successRate">0%</div>
+                    </div>
+                    <div class="stat-card-mini">
+                        <div class="label">平均每筆</div>
+                        <div class="value" id="avgAmount">HK$ 0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自動報告設置 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📅 自動報告設置</div>
+                <div class="toggle-switch active" id="autoReportToggle" onclick="toggleAutoReport()"></div>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">發送時間</label>
+                        <select class="form-select" id="sendTime" onchange="saveConfig()">
+                            <option value="08:00">早上 8:00</option>
+                            <option value="10:00">早上 10:00</option>
+                            <option value="10:30" selected>早上 10:30</option>
+                            <option value="12:00">中午 12:00</option>
+                            <option value="14:00">下午 2:00</option>
+                            <option value="16:00">下午 4:00</option>
+                            <option value="18:00">下午 6:00</option>
+                            <option value="20:00">晚上 8:00</option>
+                            <option value="22:00">晚上 10:00</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">報告內容</label>
+                        <div style="display: flex; gap: 16px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="includeDetail" checked onchange="saveConfig()" style="accent-color: var(--hermes-orange);">
+                                <span>詳細數據</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="includeDriver" checked onchange="saveConfig()" style="accent-color: var(--hermes-orange);">
+                                <span>司機業績</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 收件人設置 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">👥 WhatsApp 報告收件人</div>
+                <button class="btn btn-secondary" onclick="addRecipient()">+ 添加收件人</button>
+            </div>
+            <div class="card-body">
+                <div class="recipient-list" id="recipientList">
+                    <div class="recipient-item">
+                        <input type="checkbox" class="recipient-checkbox" checked data-phone="85298113210">
+                        <div class="recipient-info">
+                            <div class="recipient-name">咪咪姐</div>
+                            <div class="recipient-phone">+852 9811 3210</div>
+                        </div>
+                        <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('85298113210')">
+                            📱 測試發送
+                        </button>
+                    </div>
+                    <div class="recipient-item">
+                        <input type="checkbox" class="recipient-checkbox" checked data-phone="85292404878">
+                        <div class="recipient-info">
+                            <div class="recipient-name">Michelle</div>
+                            <div class="recipient-phone">+852 9240 4878</div>
+                        </div>
+                        <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('85292404878')">
+                            📱 測試發送
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 報告預覽 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📝 報告預覽 (WhatsApp 格式)</div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="refreshPreview()">🔄 刷新</button>
+                    <button class="btn btn-whatsapp" onclick="sendReportNow()">📤 立即發送</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="report-preview" id="reportPreview">正在生成報告預覽...</div>
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'https://easylink-api-v2.jimsbond007.workers.dev';
+        const merchantCode = 'KC';
+
+        // 檢查登入
+        function checkAuth() {
+            const loginTime = sessionStorage.getItem('kc_admin_login');
+            const username = sessionStorage.getItem('kc_admin_user');
+            
+            if (!loginTime || !username) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            if (Date.now() - parseInt(loginTime) > 8 * 60 * 60 * 1000) {
+                logout();
+                return false;
+            }
+            
+            return true;
+        }
+
+        function logout() {
+            sessionStorage.removeItem('kc_admin_user');
+            sessionStorage.removeItem('kc_admin_login');
+            window.location.href = 'login.html';
+        }
+
+        // 加載今日統計
+        async function refreshStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/admin/statistics`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const stats = result.data;
+                    document.getElementById('todayRevenue').textContent = 
+                        `HK$ ${parseFloat(stats.todayRevenue || 0).toLocaleString('en-HK', {minimumFractionDigits: 0})}`;
+                    document.getElementById('todayOrders').textContent = stats.todayOrders || 0;
+                    document.getElementById('successRate').textContent = `${stats.successRate || 0}%`;
+                    
+                    const avg = stats.todayOrders > 0 ? stats.todayRevenue / stats.todayOrders : 0;
+                    document.getElementById('avgAmount').textContent = 
+                        `HK$ ${avg.toLocaleString('en-HK', {minimumFractionDigits: 0})}`;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // 生成報告預覽
+        async function refreshPreview() {
+            const preview = document.getElementById('reportPreview');
+            preview.textContent = '正在生成報告...';
+            
+            try {
+                // 獲取今日交易數據
+                const today = new Date().toISOString().split('T')[0];
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/admin/transactions?startDate=${today}&status=success`);
+                const result = await response.json();
+                
+                let reportText = generateWhatsAppReport(result.data?.transactions || []);
+                preview.textContent = reportText;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                // 顯示默認預覽
+                preview.textContent = generateDefaultReport();
+            }
+        }
+
+        // 生成 WhatsApp 格式的報告
+        function generateWhatsAppReport(transactions) {
+            const today = new Date().toLocaleDateString('zh-HK', { 
+                year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' 
+            });
+            
+            const totalRevenue = transactions.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+            const totalOrders = transactions.length;
+            
+            // 支付方式統計
+            const payTypeStats = {};
+            const driverStats = {};
+            
+            transactions.forEach(tx => {
+                // 支付方式
+                const payType = tx.payType || 'OTHER';
+                if (!payTypeStats[payType]) payTypeStats[payType] = { count: 0, amount: 0 };
+                payTypeStats[payType].count++;
+                payTypeStats[payType].amount += parseFloat(tx.amount) || 0;
+                
+                // 司機統計
+                const driver = tx.driverCode || '未指定';
+                if (!driverStats[driver]) driverStats[driver] = { count: 0, amount: 0 };
+                driverStats[driver].count++;
+                driverStats[driver].amount += parseFloat(tx.amount) || 0;
+            });
+            
+            const payTypeNames = {
+                'UP_OP': '銀聯',
+                'ALI_H5': '支付寶',
+                'WX_H5': '微信'
+            };
+            
+            const driverNames = {
+                'KC001': '張師傅',
+                'KC002': '李師傅',
+                'KC003': '王師傅'
+            };
+            
+            let report = `*勁達路盟有限公司*
+*${today} 業務日報*
+
+📊 *今日總覽*
+💰 交易總額：HK$ ${totalRevenue.toLocaleString('en-HK', {minimumFractionDigits: 2})}
+📦 訂單總數：${totalOrders} 筆
+📈 平均每筆：HK$ ${totalOrders > 0 ? (totalRevenue/totalOrders).toFixed(2) : '0.00'}
+
+💳 *支付方式*`;
+            
+            Object.entries(payTypeStats).forEach(([type, stats]) => {
+                const name = payTypeNames[type] || type;
+                const pct = totalRevenue > 0 ? Math.round(stats.amount / totalRevenue * 100) : 0;
+                report += `\n${name}：HK$ ${stats.amount.toLocaleString('en-HK', {minimumFractionDigits: 0})} (${pct}%)`;
+            });
+            
+            if (document.getElementById('includeDriver').checked) {
+                report += `\n\n🚚 *司機業績*`;
+                Object.entries(driverStats)
+                    .sort((a, b) => b[1].amount - a[1].amount)
+                    .forEach(([driver, stats]) => {
+                        const name = driverNames[driver] || driver;
+                        report += `\n${name}：${stats.count}筆 / HK$ ${stats.amount.toLocaleString('en-HK', {minimumFractionDigits: 0})}`;
+                    });
+            }
+            
+            report += `\n\n_報告發自 King-Chicken 支付系統_`;
+            
+            return report;
+        }
+
+        function generateDefaultReport() {
+            const today = new Date().toLocaleDateString('zh-HK', { 
+                year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' 
+            });
+            
+            return `*勁達路盟有限公司*
+*${today} 業務日報*
+
+📊 *今日總覽*
+💰 交易總額：HK$ 0.00
+📦 訂單總數：0 筆
+📈 平均每筆：HK$ 0.00
+
+💳 *支付方式*
+銀聯：HK$ 0 (0%)
+支付寶：HK$ 0 (0%)
+微信：HK$ 0 (0%)
+
+🚚 *司機業績*
+暫無數據
+
+_報告發自 King-Chicken 支付系統_`;
+        }
+
+        // 切換自動報告
+        function toggleAutoReport() {
+            const toggle = document.getElementById('autoReportToggle');
+            toggle.classList.toggle('active');
+            saveConfig();
+        }
+
+        // 保存設置
+        async function saveConfig() {
+            // 這裡可以調用 API 保存設置到數據庫
+            showStatus('設置已自動保存', true);
+        }
+
+        // 添加收件人
+        function addRecipient() {
+            const name = prompt('請輸入收件人名稱：');
+            if (!name) return;
+            
+            const phone = prompt('請輸入 WhatsApp 電話號碼（格式：852xxxxxxxx）：');
+            if (!phone) return;
+            
+            const list = document.getElementById('recipientList');
+            const item = document.createElement('div');
+            item.className = 'recipient-item';
+            item.innerHTML = `
+                <input type="checkbox" class="recipient-checkbox" checked data-phone="${phone}">
+                <div class="recipient-info">
+                    <div class="recipient-name">${name}</div>
+                    <div class="recipient-phone">+${phone}</div>
+                </div>
+                <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('${phone}')">
+                    📱 測試發送
+                </button>
+            `;
+            list.appendChild(item);
+            
+            showStatus('收件人已添加', true);
+        }
+
+        // 測試發送
+        async function testSend(phone) {
+            const reportText = document.getElementById('reportPreview').textContent;
+            
+            // 構建 WhatsApp 鏈接
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(reportText)}`;
+            
+            // 在新窗口打開 WhatsApp
+            window.open(whatsappUrl, '_blank');
+            
+            showStatus(`正在打開 WhatsApp 發送給 +${phone}...`, true);
+        }
+
+        // 立即發送報告
+        async function sendReportNow() {
+            const checkboxes = document.querySelectorAll('.recipient-checkbox:checked');
+            if (checkboxes.length === 0) {
+                showStatus('請至少選擇一位收件人', false);
+                return;
+            }
+            
+            const reportText = document.getElementById('reportPreview').textContent;
+            let sent = 0;
+            
+            checkboxes.forEach(checkbox => {
+                const phone = checkbox.dataset.phone;
+                if (phone) {
+                    // 構建 WhatsApp 鏈接
+                    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(reportText)}`;
+                    
+                    // 延遲打開，避免被瀏覽器阻止
+                    setTimeout(() => {
+                        window.open(whatsappUrl, '_blank');
+                    }, sent * 500);
+                    
+                    sent++;
+                }
+            });
+            
+            showStatus(`正在發送給 ${sent} 位收件人...`, true);
+        }
+
+        // 顯示狀態消息
+        function showStatus(message, isSuccess) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + (isSuccess ? 'success' : 'error');
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) return;
+            refreshStats();
+            refreshPreview();
+        });
+    </script>
+</body>
+</html>
