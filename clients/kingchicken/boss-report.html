@@ -522,26 +522,7 @@
             </div>
             <div class="card-body">
                 <div class="recipient-list" id="recipientList">
-                    <div class="recipient-item">
-                        <input type="checkbox" class="recipient-checkbox" checked data-phone="85298113210">
-                        <div class="recipient-info">
-                            <div class="recipient-name">咪咪姐</div>
-                            <div class="recipient-phone">+852 9811 3210</div>
-                        </div>
-                        <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('85298113210')">
-                            📱 測試發送
-                        </button>
-                    </div>
-                    <div class="recipient-item">
-                        <input type="checkbox" class="recipient-checkbox" checked data-phone="85292404878">
-                        <div class="recipient-info">
-                            <div class="recipient-name">Michelle</div>
-                            <div class="recipient-phone">+852 9240 4878</div>
-                        </div>
-                        <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('85292404878')">
-                            📱 測試發送
-                        </button>
-                    </div>
+                    <!-- 收件人列表由 JS 动态生成 -->
                 </div>
             </div>
         </div>
@@ -740,6 +721,46 @@ _報告發自 King-Chicken 支付系統_`;
             showStatus('設置已自動保存', true);
         }
 
+        // 默认收件人数据
+        let recipients = [
+            { id: 1, name: '咪咪姐', phone: '85298113210', checked: true },
+            { id: 2, name: 'Michelle', phone: '85292404878', checked: true }
+        ];
+
+        // 渲染收件人列表
+        function renderRecipients() {
+            const list = document.getElementById('recipientList');
+            list.innerHTML = recipients.map(r => `
+                <div class="recipient-item" data-id="${r.id}">
+                    <input type="checkbox" class="recipient-checkbox" ${r.checked ? 'checked' : ''} data-phone="${r.phone}" onchange="toggleRecipient(${r.id})">
+                    <div class="recipient-info">
+                        <div class="recipient-name">${r.name}</div>
+                        <div class="recipient-phone">+${r.phone}</div>
+                    </div>
+                    <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('${r.phone}')">
+                        📱 測試發送
+                    </button>
+                    <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 13px; background: var(--danger); color: white; border: none;" onclick="deleteRecipient(${r.id})">
+                        🗑️ 刪除
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 切换收件人选中状态
+        function toggleRecipient(id) {
+            const r = recipients.find(x => x.id === id);
+            if (r) r.checked = !r.checked;
+        }
+
+        // 刪除收件人
+        function deleteRecipient(id) {
+            if (!confirm('確定要刪除這位收件人嗎？')) return;
+            recipients = recipients.filter(r => r.id !== id);
+            renderRecipients();
+            showStatus('收件人已刪除', true);
+        }
+
         // 添加收件人
         function addRecipient() {
             const name = prompt('請輸入收件人名稱：');
@@ -748,21 +769,9 @@ _報告發自 King-Chicken 支付系統_`;
             const phone = prompt('請輸入 WhatsApp 電話號碼（格式：852xxxxxxxx）：');
             if (!phone) return;
             
-            const list = document.getElementById('recipientList');
-            const item = document.createElement('div');
-            item.className = 'recipient-item';
-            item.innerHTML = `
-                <input type="checkbox" class="recipient-checkbox" checked data-phone="${phone}">
-                <div class="recipient-info">
-                    <div class="recipient-name">${name}</div>
-                    <div class="recipient-phone">+${phone}</div>
-                </div>
-                <button class="btn btn-whatsapp" style="padding: 8px 14px; font-size: 13px;" onclick="testSend('${phone}')">
-                    📱 測試發送
-                </button>
-            `;
-            list.appendChild(item);
-            
+            const newId = Math.max(...recipients.map(r => r.id), 0) + 1;
+            recipients.push({ id: newId, name, phone, checked: true });
+            renderRecipients();
             showStatus('收件人已添加', true);
         }
 
@@ -781,8 +790,8 @@ _報告發自 King-Chicken 支付系統_`;
 
         // 立即發送報告
         async function sendReportNow() {
-            const checkboxes = document.querySelectorAll('.recipient-checkbox:checked');
-            if (checkboxes.length === 0) {
+            const checkedRecipients = recipients.filter(r => r.checked);
+            if (checkedRecipients.length === 0) {
                 showStatus('請至少選擇一位收件人', false);
                 return;
             }
@@ -790,19 +799,16 @@ _報告發自 King-Chicken 支付系統_`;
             const reportText = document.getElementById('reportPreview').textContent;
             let sent = 0;
             
-            checkboxes.forEach(checkbox => {
-                const phone = checkbox.dataset.phone;
-                if (phone) {
-                    // 構建 WhatsApp 鏈接
-                    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(reportText)}`;
-                    
-                    // 延遲打開，避免被瀏覽器阻止
-                    setTimeout(() => {
-                        window.open(whatsappUrl, '_blank');
-                    }, sent * 500);
-                    
-                    sent++;
-                }
+            checkedRecipients.forEach(r => {
+                // 構建 WhatsApp 鏈接
+                const whatsappUrl = `https://wa.me/${r.phone}?text=${encodeURIComponent(reportText)}`;
+                
+                // 延遲打開，避免被瀏覽器阻止
+                setTimeout(() => {
+                    window.open(whatsappUrl, '_blank');
+                }, sent * 500);
+                
+                sent++;
             });
             
             showStatus(`正在發送給 ${sent} 位收件人...`, true);
@@ -823,6 +829,7 @@ _報告發自 King-Chicken 支付系統_`;
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             if (!checkAuth()) return;
+            renderRecipients();
             refreshStats();
             refreshPreview();
         });

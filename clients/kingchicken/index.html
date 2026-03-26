@@ -646,7 +646,9 @@
                     body: JSON.stringify({
                         amount: selectedAmount,
                         payType: selectedPayType,
-                        subject: 'King-Chicken Payment'
+                        subject: 'King-Chicken Payment',
+                        driverCode: selectedDriver,
+                        driverName: selectedDriver ? driverData[selectedDriver]?.name || '' : ''
                     })
                 });
                 

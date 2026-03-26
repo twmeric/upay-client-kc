@@ -20,7 +20,12 @@ const CONFIG = {
     'https://king-chicken.jkdcoding.com',
     'http://localhost:8788',
     'http://localhost:3000'
-  ]
+  ],
+  // 商戶自定義域名映射
+  MERCHANT_DOMAINS: {
+    'KC': 'king-chicken.jkdcoding.com',
+    '_dummy': 'dummy.jkdcoding.com'
+  }
 };
 
 // ============================================
@@ -62,6 +67,17 @@ function generateOrderNo(merchantCode, prefix = 'ORD') {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+// 獲取商戶回調 URL
+function getMerchantReturnUrl(merchantCode) {
+  // 檢查是否有自定義域名
+  const customDomain = CONFIG.MERCHANT_DOMAINS[merchantCode];
+  if (customDomain) {
+    return `https://${customDomain}/payment-success.html?merchant=${merchantCode}`;
+  }
+  // 默認使用 Pages 域名
+  return `https://easylink-client-${merchantCode.toLowerCase()}.pages.dev/payment-success.html?merchant=${merchantCode}`;
 }
 
 async function calculateSign(params, secret) {
@@ -185,7 +201,8 @@ async function getTransactions(env, mchNo, filters = {}) {
     currency: tx.currency,
     payType: tx.payType,
     status: statusMap[tx.status] || tx.status,
-    remark: tx.subject || '',
+    remark: tx.note || '',
+    subject: tx.subject || '',
     driverCode: tx.driverCode || '',
     driverName: tx.driverName || '',
     createdAt: new Date(tx.createdAt * 1000).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' }),
@@ -400,7 +417,7 @@ async function handleCreatePayment(request, env, merchant, origin) {
       signType: 'MD5',
       subject: description || 'Product Payment',
       notifyUrl: notifyUrl || `${env.API_BASE_URL || ''}/webhook/easylink`,
-      returnUrl: returnUrl || `${env.FRONTEND_URL || ''}/payment/success?merchant=${merchant.code || 'KC'}`,
+      returnUrl: returnUrl || getMerchantReturnUrl(merchant.code || 'KC'),
       version: '1.0'
     };
     
@@ -508,6 +525,28 @@ async function handleGetStatistics(request, env, merchant, origin) {
   }
 }
 
+async function handleUpdateTransactionNote(request, env, merchant, origin) {
+  try {
+    const body = await request.json();
+    const { orderNo, note } = body;
+    
+    if (!orderNo) {
+      return errorResponse('Order number is required', 400, origin);
+    }
+    
+    await env.DB.prepare(`
+      UPDATE transactions 
+      SET note = ?, updatedAt = ?
+      WHERE (orderNo = ? OR mchOrderNo = ?) AND mchNo = ?
+    `).bind(note || '', Math.floor(Date.now() / 1000), orderNo, orderNo, merchant.mchNo).run();
+    
+    return successResponse({ success: true }, origin);
+  } catch (error) {
+    console.error('[UpdateNote] Error:', error);
+    return errorResponse('Failed to update note', 500, origin);
+  }
+}
+
 async function handleGetMerchantConfig(request, merchant, origin) {
   try {
     let config = {};
@@ -591,6 +630,16 @@ export default {
       return handleWebhook(request, env);
     }
     
+    // 批量同步 EasyLink 訂單狀態 (管理員功能)
+    if (path === '/admin/sync-easylink-orders' && request.method === 'POST') {
+      return handleSyncEasyLinkOrders(request, env, origin);
+    }
+    
+    // Agent Portal API (代理商API)
+    if (path.startsWith('/api/agent/')) {
+      return handleAgentApi(request, env, path, origin);
+    }
+    
     // 解析商戶代碼: /api/v1/:merchantCode/...
     const pathMatch = path.match(/^\/api\/v1\/([^\/]+)(\/.*)?$/);
     if (!pathMatch) {
@@ -629,6 +678,13 @@ export default {
         }
         break;
         
+      // 更新交易備註
+      case '/admin/transactions/note':
+        if (request.method === 'PUT') {
+          return handleUpdateTransactionNote(request, env, merchant, origin);
+        }
+        break;
+        
       case '/admin/statistics':
         if (request.method === 'GET') {
           return handleGetStatistics(request, env, merchant, origin);
@@ -639,3 +695,433 @@ export default {
     return errorResponse('Not found', 404, origin);
   }
 };
+
+// ============================================
+// EasyLink 訂單同步功能
+// ============================================
+
+async function handleSyncEasyLinkOrders(request, env, origin) {
+  try {
+    const body = await request.json();
+    const { mchNo = '80403445499539', date, limit = 50 } = body;
+    
+    console.log(`[SyncOrders] Starting sync for ${mchNo}, date: ${date}, limit: ${limit}`);
+    
+    // 1. 從數據庫獲取待同步的訂單（最近創建的、狀態不是成功的訂單）
+    let query = 'SELECT * FROM transactions WHERE mchNo = ?';
+    const params = [mchNo];
+    
+    if (date) {
+      const startTime = Math.floor(new Date(date).getTime() / 1000);
+      const endTime = startTime + 86400;
+      query += ' AND createdAt >= ? AND createdAt <= ?';
+      params.push(startTime, endTime);
+    } else {
+      // 默認查詢最近3天的訂單
+      const threeDaysAgo = Math.floor(Date.now() / 1000) - 3 * 86400;
+      query += ' AND createdAt >= ?';
+      params.push(threeDaysAgo);
+    }
+    
+    query += ' ORDER BY createdAt DESC LIMIT ?';
+    params.push(limit);
+    
+    const orders = await env.DB.prepare(query).bind(...params).all();
+    
+    if (!orders.results || orders.results.length === 0) {
+      return successResponse({
+        message: 'No orders found to sync',
+        synced: 0,
+        updated: 0,
+        details: []
+      }, origin);
+    }
+    
+    // 2. 逐個查詢 EasyLink 的最新狀態
+    const results = [];
+    let updatedCount = 0;
+    
+    for (const order of orders.results) {
+      try {
+        const easylinkStatus = await queryEasyLinkOrder(env, order.orderNo);
+        
+        if (easylinkStatus.success) {
+          // 檢查狀態是否需要更新
+          const currentStatus = order.status;
+          const newStatus = easylinkStatus.state; // 0-生成, 1-支付中, 2-成功, 3-失敗, 4-撤銷, 5-退款, 6-關閉
+          
+          const statusChanged = currentStatus !== newStatus;
+          
+          if (statusChanged) {
+            // 更新數據庫
+            await updateTransactionStatus(
+              env, 
+              order.orderNo, 
+              newStatus, 
+              easylinkStatus.payOrderId,
+              JSON.stringify(easylinkStatus.rawData)
+            );
+            updatedCount++;
+          }
+          
+          results.push({
+            orderNo: order.orderNo,
+            mchOrderNo: order.mchOrderNo,
+            currentStatus,
+            newStatus,
+            statusChanged,
+            easylinkData: easylinkStatus.rawData
+          });
+        } else {
+          results.push({
+            orderNo: order.orderNo,
+            mchOrderNo: order.mchOrderNo,
+            error: easylinkStatus.error || 'Query failed'
+          });
+        }
+        
+        // 延遲避免請求過快
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (err) {
+        console.error(`[SyncOrders] Failed to sync ${order.orderNo}:`, err);
+        results.push({
+          orderNo: order.orderNo,
+          error: err.message
+        });
+      }
+    }
+    
+    return successResponse({
+      message: 'Sync completed',
+      total: orders.results.length,
+      updated: updatedCount,
+      details: results
+    }, origin);
+    
+  } catch (error) {
+    console.error('[SyncOrders] Error:', error);
+    return errorResponse('Failed to sync orders', 500, origin);
+  }
+}
+
+// 查詢 EasyLink 單個訂單狀態
+async function queryEasyLinkOrder(env, orderNo) {
+  try {
+    const appId = env.EASYLINK_APP_ID || '6763e0a175249c805471328d';
+    // 使用與創建訂單相同的硬編碼密鑰
+    const appSecret = '8DsrsUZH9FPHEtLO9k3SYh9decnsYMbfDcjE8r5BaCIHGxbKgjucyHxRRPVfuwZgULBiPvVS5bHWTvvghdqCYWTBOpr7t6qahTe6AspingMJcg7jkzPxY3OnsvJJJz5G';
+    const mchNo = '80403445499539';
+    
+    console.log(`[QueryEasyLink] Using appId: ${appId}, mchNo: ${mchNo}`);
+    
+    // 使用與創建訂單相同的 reqTime 格式：YYYYMMDDHHMMSS
+    const now = new Date();
+    const reqTime = now.getFullYear().toString() + 
+                   String(now.getMonth() + 1).padStart(2, '0') + 
+                   String(now.getDate()).padStart(2, '0') + 
+                   String(now.getHours()).padStart(2, '0') + 
+                   String(now.getMinutes()).padStart(2, '0') + 
+                   String(now.getSeconds()).padStart(2, '0');
+    
+    const params = {
+      mchNo: mchNo,
+      appId: appId,
+      mchOrderNo: orderNo,
+      reqTime: reqTime,
+      version: '1.0',
+      signType: 'MD5'
+    };
+    
+    console.log(`[QueryEasyLink] Params:`, JSON.stringify(params));
+    
+    const result = await callEasyLink('/api/pay/query', params, appSecret);
+    
+    console.log(`[QueryEasyLink] Result for ${orderNo}:`, JSON.stringify(result));
+    
+    if (result.code === 0 && result.data) {
+      return {
+        success: true,
+        state: result.data.state,
+        payOrderId: result.data.payOrderId,
+        amount: result.data.amount,
+        rawData: result.data
+      };
+    } else {
+      return {
+        success: false,
+        error: result.msg || 'Unknown error'
+      };
+    }
+    
+  } catch (error) {
+    console.error('[QueryEasyLink] Error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// ============================================
+// Agent Portal API Handlers
+// ============================================
+
+async function handleAgentApi(request, env, path, origin) {
+  // Agent 登录
+  if (path === '/api/agent/login' && request.method === 'POST') {
+    return handleAgentLogin(request, env, origin);
+  }
+  
+  // 验证 Agent Token (简化版，使用 header 中的 X-Agent-Code)
+  const agentCode = request.headers.get('X-Agent-Code');
+  if (!agentCode) {
+    return errorResponse('Unauthorized', 401, origin);
+  }
+  
+  const agent = await getAgentByCode(env, agentCode);
+  if (!agent) {
+    return errorResponse('Agent not found', 404, origin);
+  }
+  
+  // 获取 Agent 统计
+  if (path === '/api/agent/dashboard' && request.method === 'GET') {
+    return handleAgentDashboard(request, env, agent, origin);
+  }
+  
+  // 获取旗下商户列表
+  if (path === '/api/agent/merchants' && request.method === 'GET') {
+    return handleAgentMerchants(request, env, agent, origin);
+  }
+  
+  // 提交商户申请
+  if (path === '/api/agent/applications' && request.method === 'POST') {
+    return handleCreateApplication(request, env, agent, origin);
+  }
+  
+  // 获取申请列表
+  if (path === '/api/agent/applications' && request.method === 'GET') {
+    return handleGetApplications(request, env, agent, origin);
+  }
+  
+  // 获取单个申请详情
+  const applicationMatch = path.match(/^\/api\/agent\/applications\/(.+)$/);
+  if (applicationMatch && request.method === 'GET') {
+    return handleGetApplicationDetail(request, env, agent, applicationMatch[1], origin);
+  }
+  
+  return errorResponse('Not found', 404, origin);
+}
+
+// Agent 登录 (简化版，直接返回 agent code)
+async function handleAgentLogin(request, env, origin) {
+  try {
+    const body = await request.json();
+    const { email, password } = body;
+    
+    // 简化验证：检查是否存在该 agent
+    const agent = await env.DB.prepare(
+      'SELECT * FROM agents WHERE email = ? AND status = "active"'
+    ).bind(email).first();
+    
+    if (!agent) {
+      return errorResponse('Invalid credentials', 401, origin);
+    }
+    
+    // 简化：直接返回 agent code (生产环境应该使用 JWT)
+    return successResponse({
+      agentCode: agent.agentCode,
+      name: agent.name,
+      email: agent.email
+    }, origin);
+    
+  } catch (error) {
+    console.error('[AgentLogin] Error:', error);
+    return errorResponse('Login failed', 500, origin);
+  }
+}
+
+// 获取 Agent 信息
+async function getAgentByCode(env, code) {
+  return await env.DB.prepare(
+    'SELECT * FROM agents WHERE agentCode = ? AND status = "active"'
+  ).bind(code).first();
+}
+
+// Agent Dashboard 统计
+async function handleAgentDashboard(request, env, agent, origin) {
+  try {
+    // 获取旗下商户数
+    const merchantCount = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM agent_merchants WHERE agentId = ?
+    `).bind(agent.id).first();
+    
+    // 获取待处理申请数
+    const pendingApps = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM merchant_applications 
+      WHERE agentId = ? AND status IN ('draft', 'pending')
+    `).bind(agent.id).first();
+    
+    // 获取今日交易额（简化：返回模拟数据）
+    const todayRevenue = 0;
+    
+    return successResponse({
+      totalMerchants: merchantCount?.count || 0,
+      pendingApplications: pendingApps?.count || 0,
+      todayRevenue: todayRevenue,
+      commissionRate: agent.commissionRate
+    }, origin);
+    
+  } catch (error) {
+    console.error('[AgentDashboard] Error:', error);
+    return errorResponse('Failed to fetch dashboard', 500, origin);
+  }
+}
+
+// 获取旗下商户列表
+async function handleAgentMerchants(request, env, agent, origin) {
+  try {
+    const merchants = await env.DB.prepare(`
+      SELECT m.* FROM merchants m
+      INNER JOIN agent_merchants am ON m.id = am.merchantId
+      WHERE am.agentId = ?
+      ORDER BY m.createdAt DESC
+    `).bind(agent.id).all();
+    
+    return successResponse({
+      merchants: merchants.results || []
+    }, origin);
+    
+  } catch (error) {
+    console.error('[AgentMerchants] Error:', error);
+    return errorResponse('Failed to fetch merchants', 500, origin);
+  }
+}
+
+// 创建商户申请
+async function handleCreateApplication(request, env, agent, origin) {
+  try {
+    const body = await request.json();
+    const now = Math.floor(Date.now() / 1000);
+    
+    // 生成申请编号
+    const appNo = `APP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
+    
+    const result = await env.DB.prepare(`
+      INSERT INTO merchant_applications (
+        applicationNo, agentId, merchantName, merchantShortName, merchantType, industryType,
+        brNumber, crNumber, registeredAddress, operatingAddress,
+        directorName, directorPosition, directorIdNumber, directorPhone, directorEmail, directorShareholding,
+        contactName, contactPosition, contactPhone, contactEmail,
+        websiteUrl, appName, businessDescription, estimatedMonthlyRevenue, averageTransactionAmount,
+        settlementAccountName, bankName, bankAccountNumber, bankBranchCode,
+        status, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      appNo,
+      agent.id,
+      body.merchantName,
+      body.merchantShortName || '',
+      body.merchantType,
+      body.industryType,
+      body.brNumber,
+      body.crNumber || '',
+      body.registeredAddress,
+      body.operatingAddress,
+      body.directorName,
+      body.directorPosition,
+      body.directorIdNumber,
+      body.directorPhone,
+      body.directorEmail,
+      body.directorShareholding || 0,
+      body.contactName,
+      body.contactPosition,
+      body.contactPhone,
+      body.contactEmail,
+      body.websiteUrl || '',
+      body.appName || '',
+      body.businessDescription || '',
+      body.estimatedMonthlyRevenue || '',
+      body.averageTransactionAmount || 0,
+      body.settlementAccountName,
+      body.bankName,
+      body.bankAccountNumber,
+      body.bankBranchCode || '',
+      'draft',
+      now,
+      now
+    ).run();
+    
+    return successResponse({
+      applicationNo: appNo,
+      id: result.meta?.last_row_id,
+      status: 'draft'
+    }, origin);
+    
+  } catch (error) {
+    console.error('[CreateApplication] Error:', error);
+    return errorResponse('Failed to create application', 500, origin);
+  }
+}
+
+// 获取申请列表
+async function handleGetApplications(request, env, agent, origin) {
+  try {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    
+    let query = `
+      SELECT id, applicationNo, merchantName, merchantType, status, createdAt, submittedAt
+      FROM merchant_applications 
+      WHERE agentId = ?
+    `;
+    const params = [agent.id];
+    
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    
+    query += ' ORDER BY createdAt DESC';
+    
+    const applications = await env.DB.prepare(query).bind(...params).all();
+    
+    return successResponse({
+      applications: applications.results || []
+    }, origin);
+    
+  } catch (error) {
+    console.error('[GetApplications] Error:', error);
+    return errorResponse('Failed to fetch applications', 500, origin);
+  }
+}
+
+// 获取申请详情
+async function handleGetApplicationDetail(request, env, agent, appNo, origin) {
+  try {
+    const application = await env.DB.prepare(`
+      SELECT * FROM merchant_applications 
+      WHERE applicationNo = ? AND agentId = ?
+    `).bind(appNo, agent.id).first();
+    
+    if (!application) {
+      return errorResponse('Application not found', 404, origin);
+    }
+    
+    // 获取关联文件
+    const documents = await env.DB.prepare(`
+      SELECT id, documentType, documentName, fileUrl, uploadedAt
+      FROM application_documents 
+      WHERE applicationId = ?
+    `).bind(application.id).all();
+    
+    return successResponse({
+      application: application,
+      documents: documents.results || []
+    }, origin);
+    
+  } catch (error) {
+    console.error('[GetApplicationDetail] Error:', error);
+    return errorResponse('Failed to fetch application', 500, origin);
+  }
+}

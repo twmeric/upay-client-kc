@@ -12,7 +12,7 @@
         - 电商: 渠道管理
         - 其他: 可在 config.js 中禁用此功能
     -->
-    <title>King-Chicken 司機管理</title>
+    <title>King-Chicken 收款渠道管理</title>
     <link rel="icon" type="image/png" href="favicon.ico">
     
     <style>
@@ -36,6 +36,17 @@
             --success: #16a34a;
             --warning: #d97706;
             --danger: #dc2626;
+        }
+
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --cream: #1a1a2e;
+            --cream-dark: #16213e;
+            --beige: #0f3460;
+            --text-dark: #e94560;
+            --text-medium: #eaeaea;
+            --text-light: #a0a0a0;
+            --white: #16213e;
         }
 
         body {
@@ -310,6 +321,67 @@
             background: var(--beige);
         }
 
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+        }
+
+        .btn-edit {
+            background: var(--cream);
+            color: var(--text-medium);
+            border: 1px solid var(--beige);
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .btn-edit:hover {
+            background: var(--hermes-orange);
+            color: white;
+            border-color: var(--hermes-orange);
+        }
+
+        .btn-delete {
+            background: var(--cream);
+            color: var(--danger);
+            border: 1px solid var(--beige);
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .form-input {
+            padding: 10px 14px;
+            border: 1px solid var(--beige);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--white);
+            color: var(--text-dark);
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.08);
+        }
+
         .card-body {
             padding: 24px;
         }
@@ -535,6 +607,26 @@
                 font-size: 14px;
             }
         }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -550,24 +642,39 @@
             <nav class="nav-menu">
                 <a href="admin.html" class="nav-link" style="background: var(--cream-dark); color: var(--text-medium); border: 1px solid var(--beige);">交易記錄</a>
                 <a href="boss-report.html" class="nav-link" style="background: var(--cream-dark); color: var(--text-medium); border: 1px solid var(--beige);">管理者報告</a>
-                <a href="drivers.html" class="nav-link" style="background: var(--hermes-orange); color: white;">司機管理</a>
+                <a href="drivers.html" class="nav-link" style="background: var(--hermes-orange); color: white;">渠道管理</a>
             </nav>
             <div class="header-actions">
+                <button class="logout-btn" onclick="toggleDarkMode()" style="margin-right: 8px;">🌓 深色模式</button>
                 <button class="logout-btn" onclick="logout()">登出</button>
             </div>
         </div>
     </header>
 
     <main class="main-container">
-        <h1 class="page-title">🚚 司機管理</h1>
+        <h1 class="page-title">📊 收款渠道管理</h1>
+
+        <!-- 日期篩選 -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-body">
+                <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                    <label style="color: var(--text-medium); font-size: 14px;">📅 日期範圍：</label>
+                    <input type="date" id="startDate" class="form-input" style="width: 140px; padding: 8px 12px;">
+                    <span style="color: var(--text-light);">至</span>
+                    <input type="date" id="endDate" class="form-input" style="width: 140px; padding: 8px 12px;">
+                    <button class="btn btn-primary" onclick="applyDateFilter()" style="padding: 8px 16px; font-size: 13px;">套用</button>
+                    <button class="btn btn-secondary" onclick="resetDateFilter()" style="padding: 8px 16px; font-size: 13px;">重置</button>
+                </div>
+            </div>
+        </div>
 
         <!-- 統計卡片 -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-header">
-                    <div class="stat-icon blue">🚚</div>
+                    <div class="stat-icon blue">🏪</div>
                     <div>
-                        <div class="stat-label">總司機數</div>
+                        <div class="stat-label">渠道數量</div>
                         <div class="stat-value" id="totalDrivers">3</div>
                     </div>
                 </div>
@@ -576,7 +683,7 @@
                 <div class="stat-header">
                     <div class="stat-icon orange">💰</div>
                     <div>
-                        <div class="stat-label">今日司機收款</div>
+                        <div class="stat-label">今日總收款</div>
                         <div class="stat-value" id="todayDriverRevenue">HK$ 0</div>
                     </div>
                 </div>
@@ -585,33 +692,32 @@
                 <div class="stat-header">
                     <div class="stat-icon green">📦</div>
                     <div>
-                        <div class="stat-label">今日司機訂單</div>
+                        <div class="stat-label">今日總訂單</div>
                         <div class="stat-value" id="todayDriverOrders">0</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 司機列表 -->
+        <!-- 渠道列表 -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">司機列表與業績</div>
+                <div class="card-title">渠道列表與總額</div>
                 <div class="card-actions">
-                    <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
-                    <button class="btn btn-primary" onclick="exportDriverData()">📥 導出報表</button>
+                    <button class="btn btn-primary" onclick="openAddModal()">➕ 新增渠道</button>
+                    <button class="btn btn-secondary" onclick="exportDriverData()">📥 導出報表</button>
                 </div>
             </div>
             <div class="card-body">
                 <table class="driver-table" id="driverTable">
                     <thead>
                         <tr>
-                            <th>司機</th>
+                            <th>渠道方</th>
                             <th>聯絡電話</th>
-                            <th>狀態</th>
-                            <th>今日訂單</th>
-                            <th>今日收款</th>
-                            <th>佔比</th>
+                            <th>訂單數量</th>
+                            <th>收款總額</th>
                             <th>專屬二維碼</th>
+                            <th>備註</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -629,19 +735,19 @@
             </div>
             <div class="card-body">
                 <div style="color: var(--text-medium); line-height: 1.8;">
-                    <p><strong>1. 司機專屬支付鏈接</strong></p>
-                    <p>每位司機都有獨立的支付二維碼，客戶掃描後自動關聯該司機。</p>
+                    <p><strong>1. 渠道專屬支付鏈接</strong></p>
+                    <p>每個渠道都有獨立的支付二維碼，客戶掃描後自動關聯該渠道。</p>
                     <br>
                     <p><strong>2. 如何使用</strong></p>
                     <ul style="margin-left: 20px; margin-top: 8px;">
-                        <li>點擊「查看二維碼」顯示司機專屬二維碼</li>
-                        <li>截圖或打印給對應司機</li>
-                        <li>司機送貨時讓客戶掃描自己的二維碼</li>
-                        <li>系統自動記錄哪個司機關聯了訂單</li>
+                        <li>點擊「發送給渠道方」通過 WhatsApp 發送二維碼給對方</li>
+                        <li>或截圖/打印二維碼給對應渠道</li>
+                        <li>渠道方展示二維碼給客戶掃描</li>
+                        <li>系統自動記錄哪個渠道關聯了訂單</li>
                     </ul>
                     <br>
                     <p><strong>3. 業績統計</strong></p>
-                    <p>實時查看每位司機的收款金額和訂單數，方便月底結算。</p>
+                    <p>實時查看每個渠道的收款金額和訂單數，方便月底結算。可使用日期篩選查看不同時間段的數據。</p>
                 </div>
             </div>
         </div>
@@ -663,21 +769,74 @@
         </div>
     </div>
 
+    <!-- 新增/編輯渠道彈窗 -->
+    <div class="modal" id="channelModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-title" id="channelModalTitle">新增渠道</div>
+            <form id="channelForm" onsubmit="saveChannel(event)">
+                <input type="hidden" id="editChannelCode" value="">
+                <div style="margin-bottom: 16px; text-align: left;">
+                    <label style="display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px;">渠道編號 *</label>
+                    <input type="text" id="channelCode" class="form-input" style="width: 100%;" placeholder="例如：KC004" required>
+                </div>
+                <div style="margin-bottom: 16px; text-align: left;">
+                    <label style="display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px;">渠道名稱 *</label>
+                    <input type="text" id="channelName" class="form-input" style="width: 100%;" placeholder="例如：陳師傅" required>
+                </div>
+                <div style="margin-bottom: 16px; text-align: left;">
+                    <label style="display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px;">聯絡電話 *</label>
+                    <input type="text" id="channelPhone" class="form-input" style="width: 100%;" placeholder="例如：9123-4567" required>
+                </div>
+                <div style="margin-bottom: 24px; text-align: left;">
+                    <label style="display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px;">備註</label>
+                    <textarea id="channelNote" class="form-input" style="width: 100%; min-height: 60px; resize: vertical;" placeholder="可選填寫備註信息"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button type="submit" class="btn btn-primary">💾 保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeChannelModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'https://easylink-api-v2.jimsbond007.workers.dev';
         const merchantCode = 'KC';
 
         // KC-SPECIFIC: 司機基礎數據
-        // 這是 King Chicken 的配送司機數據
+        // 使用 localStorage 持久化存儲，支持 CRUD 操作
         // 其他商戶應根據業務類型修改此數據結構：
         // - 零售: 改為店員數據 {staff001: {name: '店員A', store: '分店1'}}
         // - 餐廳: 改為服務員數據 {waiter001: {name: '服務員A', area: 'A區'}}
-        const driverData = {
-            'KC001': { name: '張師傅', phone: '9123-4567', avatar: '張', status: 'active' },
-            'KC002': { name: '李師傅', phone: '9234-5678', avatar: '李', status: 'active' },
-            'KC003': { name: '王師傅', phone: '9345-6789', avatar: '王', status: 'active' }
+        
+        const DEFAULT_DRIVERS = {
+            'KC001': { name: '張師傅', phone: '9123-4567', avatar: '張', status: 'active', note: '' },
+            'KC002': { name: '李師傅', phone: '9234-5678', avatar: '李', status: 'active', note: '' },
+            'KC003': { name: '王師傅', phone: '9345-6789', avatar: '王', status: 'active', note: '' }
         };
-
+        
+        // 從 localStorage 加載渠道數據
+        function loadDriverDataFromStorage() {
+            const stored = localStorage.getItem('kc_driver_data');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+            // 首次使用默認數據
+            localStorage.setItem('kc_driver_data', JSON.stringify(DEFAULT_DRIVERS));
+            return DEFAULT_DRIVERS;
+        }
+        
+        // 保存渠道數據到 localStorage
+        function saveDriverDataToStorage(data) {
+            localStorage.setItem('kc_driver_data', JSON.stringify(data));
+        }
+        
+        // 獲取頭像文字（從名字第一個字）
+        function getAvatar(name) {
+            return name.charAt(0);
+        }
+        
+        let driverData = loadDriverDataFromStorage();
         let currentQrDriver = '';
 
         // 檢查登入
@@ -704,16 +863,43 @@
             window.location.href = 'login.html';
         }
 
-        // 加載司機數據
+        // 初始化日期
+        function initDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('endDate').value = today;
+            currentFilterEndDate = today;
+            
+            const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            document.getElementById('startDate').value = lastWeek;
+            currentFilterStartDate = lastWeek;
+        }
+        
+        // 套用日期篩選
+        function applyDateFilter() {
+            currentFilterStartDate = document.getElementById('startDate').value;
+            currentFilterEndDate = document.getElementById('endDate').value;
+            loadDriverData();
+        }
+        
+        // 重置日期篩選
+        function resetDateFilter() {
+            initDates();
+            loadDriverData();
+        }
+
+        // 加載渠道數據
         async function loadDriverData() {
             try {
-                const today = new Date().toISOString().split('T')[0];
-                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/admin/transactions?startDate=${today}&status=success`);
+                let url = `${API_BASE}/api/v1/${merchantCode}/admin/transactions?status=success`;
+                if (currentFilterStartDate) url += `&startDate=${currentFilterStartDate}`;
+                if (currentFilterEndDate) url += `&endDate=${currentFilterEndDate}`;
+                
+                const response = await fetch(url);
                 const result = await response.json();
                 
                 const transactions = result.data?.transactions || [];
                 
-                // 統計司機數據
+                // 統計渠道數據
                 const driverStats = {};
                 let totalRevenue = 0;
                 
@@ -751,20 +937,23 @@
             }
         }
 
-        // 渲染司機表格
+        // 渲染渠道表格
         function renderDriverTable(stats, totalRevenue) {
             const tbody = document.getElementById('driverTableBody');
             
+            // 更新渠道數量統計
+            document.getElementById('totalDrivers').textContent = Object.keys(driverData).length;
+            
             const rows = Object.entries(driverData).map(([code, info]) => {
                 const stat = stats[code] || { count: 0, amount: 0 };
-                const percentage = totalRevenue > 0 ? (stat.amount / totalRevenue * 100).toFixed(1) : 0;
                 const payUrl = `https://easylink-client-kingchicken.pages.dev/?driver=${code}`;
+                const note = info.note || '';
                 
                 return `
                     <tr>
                         <td>
                             <div class="driver-info">
-                                <div class="driver-avatar">${info.avatar}</div>
+                                <div class="driver-avatar">${getAvatar(info.name)}</div>
                                 <div>
                                     <div class="driver-name">${info.name}</div>
                                     <div class="driver-code">${code}</div>
@@ -772,34 +961,63 @@
                             </div>
                         </td>
                         <td>${info.phone}</td>
-                        <td>
-                            <span class="status-badge ${info.status}">
-                                ${info.status === 'active' ? '✓ 在職' : '○ 離職'}
-                            </span>
-                        </td>
                         <td>${stat.count}</td>
                         <td class="amount-cell">HK$ ${stat.amount.toLocaleString('en-HK', {minimumFractionDigits: 2})}</td>
-                        <td style="width: 120px;">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${percentage}%"></div>
-                            </div>
-                            <div class="progress-text">${percentage}%</div>
-                        </td>
                         <td>
-                            <div class="qr-code-small" onclick="showQrCode('${code}', '${payUrl}')" title="查看二維碼">
-                                📱
-                            </div>
-                        </td>
-                        <td>
-                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="viewDriverDetail('${code}')">
-                                詳情
+                            <button class="btn btn-whatsapp" onclick="sendQrToChannel('${code}', '${info.name}', '${info.phone}')" title="發送二維碼">
+                                📱 發送給渠道方
                             </button>
+                        </td>
+                        <td style="min-width: 150px;">
+                            <div class="note-cell" contenteditable="true" 
+                                 data-code="${code}"
+                                 style="min-height: 32px; padding: 6px 10px; border: 1px solid var(--beige); border-radius: 6px; background: var(--cream); cursor: text; font-size: 13px; line-height: 1.4;"
+                                 onblur="saveChannelNote(this)"
+                                 onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${note}</div>
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-edit" onclick="openEditModal('${code}')" title="編輯">✏️</button>
+                                <button class="btn btn-delete" onclick="deleteChannel('${code}')" title="刪除">🗑️</button>
+                            </div>
                         </td>
                     </tr>
                 `;
             }).join('');
             
             tbody.innerHTML = rows;
+        }
+        
+        // 保存渠道備註
+        function saveChannelNote(element) {
+            const code = element.dataset.code;
+            const note = element.textContent.trim();
+            
+            if (driverData[code]) {
+                driverData[code].note = note;
+                saveDriverDataToStorage(driverData);
+            }
+            
+            // 顯示保存成功提示
+            element.style.background = 'rgba(22, 163, 74, 0.1)';
+            setTimeout(() => {
+                element.style.background = 'var(--cream)';
+            }, 500);
+        }
+        
+        // 發送二維碼給渠道方 (WhatsApp)
+        function sendQrToChannel(code, name, phone) {
+            const payUrl = `https://easylink-client-kingchicken.pages.dev/?driver=${code}`;
+            const message = `${name}，附上你專屬的付款QR Code：\n\n${payUrl}\n\n客戶掃描後可直接付款，款項會自動關聯到你的賬戶。`;
+            
+            // 格式化電話號碼（去掉 - 並添加區號）
+            const formattedPhone = '852' + phone.replace(/-/g, '');
+            
+            // 構建 WhatsApp 鏈接
+            const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+            
+            // 打開 WhatsApp
+            window.open(whatsappUrl, '_blank');
         }
 
         // 顯示二維碼
@@ -838,16 +1056,19 @@
         }
 
         function exportDriverData() {
-            let csv = '\uFEFF司機編號,姓名,電話,狀態,今日訂單,今日收款\n';
+            const startDate = currentFilterStartDate || '';
+            const endDate = currentFilterEndDate || '';
+            let csv = '\uFEFF渠道編號,渠道名稱,聯絡電話,訂單數量,收款總額,備註\n';
             
+            // 需要重新獲取數據來導出
             Object.entries(driverData).forEach(([code, info]) => {
-                csv += `${code},${info.name},${info.phone},${info.status},0,0\n`;
+                csv += `${code},${info.name},${info.phone},0,0,${info.note || ''}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `司機報表_${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `渠道報表_${startDate}_${endDate}.csv`;
             link.click();
         }
 
@@ -858,10 +1079,150 @@
             }
         });
 
+        // Dark Mode 切換
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // 初始化主題
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        }
+
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             if (!checkAuth()) return;
+            initTheme();
+            initDates();
             loadDriverData();
+        });
+
+        // ========== 渠道 CRUD 操作 ==========
+        
+        // 打開新增彈窗
+        function openAddModal() {
+            document.getElementById('channelModalTitle').textContent = '新增渠道';
+            document.getElementById('channelForm').reset();
+            document.getElementById('editChannelCode').value = '';
+            document.getElementById('channelCode').disabled = false;
+            document.getElementById('channelModal').classList.add('active');
+        }
+        
+        // 打開編輯彈窗
+        function openEditModal(code) {
+            const driver = driverData[code];
+            if (!driver) return;
+            
+            document.getElementById('channelModalTitle').textContent = '編輯渠道';
+            document.getElementById('editChannelCode').value = code;
+            document.getElementById('channelCode').value = code;
+            document.getElementById('channelCode').disabled = true;
+            document.getElementById('channelName').value = driver.name;
+            document.getElementById('channelPhone').value = driver.phone;
+            document.getElementById('channelNote').value = driver.note || '';
+            document.getElementById('channelModal').classList.add('active');
+        }
+        
+        // 關閉渠道彈窗
+        function closeChannelModal() {
+            document.getElementById('channelModal').classList.remove('active');
+        }
+        
+        // 保存渠道
+        function saveChannel(event) {
+            event.preventDefault();
+            
+            const editCode = document.getElementById('editChannelCode').value;
+            const code = document.getElementById('channelCode').value.trim().toUpperCase();
+            const name = document.getElementById('channelName').value.trim();
+            const phone = document.getElementById('channelPhone').value.trim();
+            const note = document.getElementById('channelNote').value.trim();
+            
+            if (!code || !name || !phone) {
+                alert('請填寫所有必填欄位');
+                return;
+            }
+            
+            // 新增模式：檢查編號是否已存在
+            if (!editCode && driverData[code]) {
+                alert('該渠道編號已存在');
+                return;
+            }
+            
+            // 保存數據
+            driverData[code] = {
+                name: name,
+                phone: phone,
+                avatar: getAvatar(name),
+                status: 'active',
+                note: note
+            };
+            
+            // 持久化到 localStorage
+            saveDriverDataToStorage(driverData);
+            
+            // 刷新顯示
+            closeChannelModal();
+            loadDriverData();
+            
+            // 顯示成功提示
+            const message = editCode ? '渠道信息已更新' : '新渠道已添加';
+            showToast(message);
+        }
+        
+        // 刪除渠道
+        function deleteChannel(code) {
+            const driver = driverData[code];
+            if (!driver) return;
+            
+            if (!confirm(`確定要刪除渠道「${driver.name} (${code})」嗎？\n\n注意：此操作不會影響已關聯的歷史訂單。`)) {
+                return;
+            }
+            
+            delete driverData[code];
+            saveDriverDataToStorage(driverData);
+            loadDriverData();
+            showToast('渠道已刪除');
+        }
+        
+        // Toast 提示
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--text-dark);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 10000;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                animation: fadeInUp 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+        
+        // 點擊彈窗外部關閉
+        document.getElementById('channelModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeChannelModal();
+            }
         });
     </script>
 </body>

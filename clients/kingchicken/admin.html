@@ -29,10 +29,22 @@
             --danger: #dc2626;
         }
 
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --cream: #1a1a2e;
+            --cream-dark: #16213e;
+            --beige: #0f3460;
+            --text-dark: #e94560;
+            --text-medium: #eaeaea;
+            --text-light: #a0a0a0;
+            --white: #16213e;
+        }
+
         body {
             font-family: Arial, 'Microsoft JhengHei', sans-serif;
             background: var(--cream);
             min-height: 100vh;
+            transition: background 0.3s ease;
         }
 
         .header {
@@ -503,9 +515,12 @@
             <nav class="nav-menu" style="display: flex; gap: 8px;">
                 <a href="admin.html" class="nav-link" style="padding: 10px 20px; background: var(--hermes-orange); color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">交易記錄</a>
                 <a href="boss-report.html" class="nav-link" style="padding: 10px 20px; background: var(--cream-dark); color: var(--text-medium); border-radius: 8px; text-decoration: none; font-weight: 500; border: 1px solid var(--beige);">管理者報告</a>
-                <a href="drivers.html" class="nav-link" style="padding: 10px 20px; background: var(--cream-dark); color: var(--text-medium); border-radius: 8px; text-decoration: none; font-weight: 500; border: 1px solid var(--beige);">司機管理</a>
+                <a href="drivers.html" class="nav-link" style="padding: 10px 20px; background: var(--cream-dark); color: var(--text-medium); border-radius: 8px; text-decoration: none; font-weight: 500; border: 1px solid var(--beige);">渠道管理</a>
             </nav>
             <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleDarkMode()" style="margin-right: 12px;">
+                    🌓 深色模式
+                </button>
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">M</div>
                     <span id="userName">mimichu</span>
@@ -523,7 +538,7 @@
                     <div class="stat-icon orange">💰</div>
                     <span class="stat-label">今日收入</span>
                 </div>
-                <div class="stat-value" id="todayRevenue">HK$ 0.00</div>
+                <div class="stat-value" id="todayRevenue">—</div>
                 <div class="stat-change positive">+12.5% 較昨日</div>
             </div>
             <div class="stat-card">
@@ -531,7 +546,7 @@
                     <div class="stat-icon gold">📊</div>
                     <span class="stat-label">交易筆數</span>
                 </div>
-                <div class="stat-value" id="todayCount">0</div>
+                <div class="stat-value" id="todayCount">—</div>
                 <div class="stat-change">今日訂單</div>
             </div>
             <div class="stat-card">
@@ -539,7 +554,7 @@
                     <div class="stat-icon green">✓</div>
                     <span class="stat-label">成功率</span>
                 </div>
-                <div class="stat-value" id="successRate">98.5%</div>
+                <div class="stat-value" id="successRate">—</div>
                 <div class="stat-change positive">過去30天</div>
             </div>
             <div class="stat-card">
@@ -550,31 +565,6 @@
                 <div class="stat-value">1.2s</div>
                 <div class="stat-change">支付響應時間</div>
             </div>
-            <!-- Driver Stats -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon orange" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.05))">🚚</div>
-                    <span class="stat-label">司機收款 (KC001)</span>
-                </div>
-                <div class="stat-value" id="driverRevenue">HK$ 0.00</div>
-                <div class="stat-change">今日張師傅</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon orange" style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.15), rgba(217, 119, 6, 0.05))">🚚</div>
-                    <span class="stat-label">司機收款 (KC002)</span>
-                </div>
-                <div class="stat-value" id="driver2Revenue">HK$ 0.00</div>
-                <div class="stat-change">今日李師傅</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon orange" style="background: linear-gradient(135deg, rgba(22, 163, 74, 0.15), rgba(22, 163, 74, 0.05))">🚚</div>
-                    <span class="stat-label">司機收款 (KC003)</span>
-                </div>
-                <div class="stat-value" id="driver3Revenue">HK$ 0.00</div>
-                <div class="stat-change">今日王師傅</div>
-            </div>
         </div>
 
         <!-- 交易記錄 -->
@@ -583,7 +573,6 @@
                 <div class="card-header">
                     <div class="card-title">交易記錄</div>
                     <div class="card-actions">
-                        <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
                         <button class="btn btn-primary" onclick="exportData()">📥 導出</button>
                     </div>
                 </div>
@@ -605,27 +594,42 @@
                             <option value="WX_H5">微信</option>
                         </select>
                         <select class="filter-input" id="driverFilter">
-                            <option value="">所有司機</option>
-                            <option value="KC001">KC001 - 張師傅</option>
-                            <option value="KC002">KC002 - 李師傅</option>
-                            <option value="KC003">KC003 - 王師傅</option>
+                            <option value="">所有渠道</option>
+                            <option value="KC001">KC001 - 張師傅渠道</option>
+                            <option value="KC002">KC002 - 李師傅渠道</option>
+                            <option value="KC003">KC003 - 王師傅渠道</option>
                         </select>
                         <input type="text" class="filter-input" id="searchInput" placeholder="搜索訂單號...">
                     </div>
 
+                    <!-- EasyLink 同步區域 -->
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px; padding: 16px; background: var(--cream); border-radius: 12px; border: 1px solid var(--beige);">
+                        <div style="flex: 1; display: flex; align-items: center; gap: 12px;">
+                            <span style="color: var(--text-medium); font-size: 14px;">📅 同步日期：</span>
+                            <input type="date" class="filter-input" id="syncDate" style="width: 140px;">
+                            <span style="color: var(--text-light); font-size: 13px;">(留空則同步最近3天)</span>
+                        </div>
+                        <button class="btn btn-primary" id="syncBtn" onclick="syncEasyLinkOrders()">
+                            🔄 同步 EasyLink 訂單
+                        </button>
+                    </div>
+                    
+                    <!-- 同步結果顯示 -->
+                    <div id="syncResult" style="display: none; margin-bottom: 20px; padding: 16px; border-radius: 12px; font-size: 14px;"></div>
+
                     <div class="table-container">
                         <div class="loading" id="loading">加載中...</div>
-                        <table class="data-table" id="transactionsTable" style="display: none;">
+                        <table class="data-table" id="transactionsTable" style="display: none; table-layout: fixed;">
                             <thead>
                                 <tr>
-                                    <th>訂單號</th>
-                                    <th>支付訂單號</th>
-                                    <th>時間</th>
-                                    <th>金額</th>
-                                    <th>支付方式</th>
-                                    <th>配送司機</th>
-                                    <th>狀態</th>
-                                    <th>操作</th>
+                                    <th style="width: 14%;">訂單號</th>
+                                    <th style="width: 18%;">支付訂單號</th>
+                                    <th style="width: 13%; white-space: nowrap;">時間</th>
+                                    <th style="width: 11%;">金額</th>
+                                    <th style="width: 10%;">支付方式</th>
+                                    <th style="width: 12%;">收款渠道</th>
+                                    <th style="width: 8%;">狀態</th>
+                                    <th style="width: 14%;">備註</th>
                                 </tr>
                             </thead>
                             <tbody id="transactionTable">
@@ -644,6 +648,23 @@
     <script>
         const API_BASE = 'https://easylink-api-v2.jimsbond007.workers.dev';
         const merchantCode = 'KC';
+
+        // Dark Mode 切換
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // 初始化主題
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        }
 
         // 檢查登入狀態
         function checkAuth() {
@@ -701,10 +722,6 @@
                     const transactions = result.data.transactions;
                     renderTransactions(transactions);
                     
-                    if (result.data.statistics) {
-                        updateStats(result.data.statistics);
-                    }
-                    
                     document.getElementById('transactionsTable').style.display = 'table';
                     document.getElementById('emptyState').style.display = 'none';
                 } else {
@@ -714,6 +731,33 @@
             } catch (error) {
                 console.error('Error loading transactions:', error);
                 document.getElementById('loading').textContent = '加載失敗，請點擊刷新重試';
+            }
+        }
+
+        // 單獲加載統計數據
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/client/${merchantCode}/dashboard`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load statistics');
+                }
+
+                const result = await response.json();
+                
+                if (result.today) {
+                    // Convert dashboard data to stats format
+                    const stats = {
+                        todayRevenue: result.today.successAmount || 0,
+                        todayOrders: result.today.successCount || 0,
+                        successRate: result.today.orderCount > 0 
+                            ? ((result.today.successCount / result.today.orderCount) * 100).toFixed(1)
+                            : 0
+                    };
+                    updateStats(stats);
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
             }
         }
 
@@ -753,22 +797,28 @@
                 }
                 
                 const driverInfo = tx.driverCode ? 
-                    `<span style="display:inline-flex;align-items:center;gap:4px;">🚚 ${tx.driverCode} ${driverNames[tx.driverCode] || ''}</span>` : 
+                    `<span style="display:inline-flex;align-items:center;gap:4px;">🚚 ${tx.driverCode}</span>` : 
                     '<span style="color:#999">-</span>';
+                
+                const note = tx.remark || '';
+                
+                const orderNoShort = tx.orderNo.length > 15 ? tx.orderNo.substring(0, 12) + '...' : tx.orderNo;
                 
                 return `
                     <tr>
-                        <td>${tx.orderNo}</td>
+                        <td style="font-size: 12px; font-family: monospace;" title="${tx.orderNo}">${orderNoShort}</td>
                         <td>${tx.payOrderId || '-'}</td>
-                        <td>${tx.createdAt}</td>
+                        <td style="white-space: nowrap;">${formatDate(tx.createdAt)}</td>
                         <td class="amount-cell">HK$ ${parseFloat(tx.amount).toFixed(2)}</td>
                         <td>${methodNames[tx.payType] || tx.payType}</td>
                         <td>${driverInfo}</td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>
-                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="viewDetail('${tx.orderNo}')">
-                                詳情
-                            </button>
+                        <td style="min-width: 150px;">
+                            <div class="note-cell" contenteditable="true" 
+                                 data-order-no="${tx.orderNo}"
+                                 style="min-height: 32px; padding: 6px 10px; border: 1px solid var(--beige); border-radius: 6px; background: var(--cream); cursor: text; font-size: 13px; line-height: 1.4;"
+                                 onblur="saveNote(this)"
+                                 onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${note}</div>
                         </td>
                     </tr>
                 `;
@@ -784,15 +834,6 @@
             }
             if (stats.successRate !== undefined) {
                 document.getElementById('successRate').textContent = `${stats.successRate}%`;
-            }
-            // Driver stats
-            if (stats.driverRevenue) {
-                document.getElementById('driverRevenue').textContent = 
-                    `HK$ ${parseFloat(stats.driverRevenue['KC001'] || 0).toFixed(2)}`;
-                document.getElementById('driver2Revenue').textContent = 
-                    `HK$ ${parseFloat(stats.driverRevenue['KC002'] || 0).toFixed(2)}`;
-                document.getElementById('driver3Revenue').textContent = 
-                    `HK$ ${parseFloat(stats.driverRevenue['KC003'] || 0).toFixed(2)}`;
             }
         }
 
@@ -853,11 +894,11 @@
                 return;
             }
             
-            let csv = '訂單號,支付訂單號,時間,金額,支付方式,配送司機,狀態\n';
+            let csv = '訂單號,支付訂單號,時間,金額,支付方式,收款渠道,狀態,備註\n';
             
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                if (cells.length >= 7) {
+                if (cells.length >= 8) {
                     const orderNo = cells[0].textContent;
                     const payOrderId = cells[1].textContent;
                     const time = cells[2].textContent;
@@ -865,7 +906,8 @@
                     const payType = cells[4].textContent;
                     const driver = cells[5].textContent.trim().replace('🚚 ', '');
                     const status = cells[6].textContent.trim();
-                    csv += `${orderNo},${payOrderId},${time},${amount},${payType},${driver},${status}\n`;
+                    const note = cells[7].textContent.trim();
+                    csv += `${orderNo},${payOrderId},${time},${amount},${payType},${driver},${status},${note}\n`;
                 }
             });
             
@@ -880,11 +922,189 @@
             alert('訂單詳情：' + orderNo);
         }
 
+        // 格式化日期時間
+        function formatDate(timestamp) {
+            if (!timestamp) return '-';
+            
+            // 處理 Unix 時間戳（秒或毫秒）
+            let date;
+            if (typeof timestamp === 'number' || /^\d+$/.test(timestamp)) {
+                const ts = parseInt(timestamp);
+                // 判斷是秒還是毫秒
+                date = new Date(ts > 10000000000 ? ts : ts * 1000);
+            } else {
+                date = new Date(timestamp);
+            }
+            
+            if (isNaN(date.getTime())) return timestamp;
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        async function saveNote(element) {
+            const orderNo = element.dataset.orderNo;
+            const note = element.textContent.trim();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/admin/transactions/${orderNo}/note`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save note');
+                }
+                
+                // 显示保存成功提示
+                element.style.background = 'rgba(22, 163, 74, 0.1)';
+                setTimeout(() => {
+                    element.style.background = 'var(--cream)';
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error saving note:', error);
+                alert('保存備註失敗，請重試');
+            }
+        }
+
+        // 同步 EasyLink 訂單
+        async function syncEasyLinkOrders() {
+            const syncBtn = document.getElementById('syncBtn');
+            const syncResult = document.getElementById('syncResult');
+            const syncDate = document.getElementById('syncDate').value;
+            
+            // 禁用按鈕並顯示加載狀態
+            syncBtn.disabled = true;
+            syncBtn.textContent = '🔄 同步中...';
+            syncResult.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/sync-easylink-orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: syncDate || undefined,
+                        limit: 50
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    
+                    // 顯示同步結果
+                    syncResult.style.display = 'block';
+                    
+                    if (data.total === 0) {
+                        syncResult.style.background = 'rgba(217, 119, 6, 0.1)';
+                        syncResult.style.border = '1px solid rgba(217, 119, 6, 0.2)';
+                        syncResult.style.color = 'var(--warning)';
+                        syncResult.innerHTML = `
+                            <strong>⚠️ 沒有找到需要同步的訂單</strong><br>
+                            <span style="font-size: 13px;">請檢查日期範圍或稍後再試</span>
+                        `;
+                    } else {
+                        const updatedCount = data.details.filter(d => d.statusChanged).length;
+                        
+                        syncResult.style.background = updatedCount > 0 ? 'rgba(22, 163, 74, 0.1)' : 'rgba(37, 99, 235, 0.1)';
+                        syncResult.style.border = updatedCount > 0 ? '1px solid rgba(22, 163, 74, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)';
+                        syncResult.style.color = updatedCount > 0 ? 'var(--success)' : 'var(--text-medium)';
+                        
+                        let detailsHtml = '';
+                        if (updatedCount > 0) {
+                            const updatedOrders = data.details.filter(d => d.statusChanged);
+                            detailsHtml = `
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--beige);">
+                                    <strong>已更新訂單：</strong><br>
+                                    ${updatedOrders.map(o => `
+                                        <span style="font-size: 12px; display: inline-block; margin: 4px 8px 4px 0; padding: 4px 8px; background: var(--cream); border-radius: 4px;">
+                                            ${o.orderNo}: ${getStatusText(o.currentStatus)} → ${getStatusText(o.newStatus)}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }
+                        
+                        // 顯示失敗的訂單
+                        const failedOrders = data.details.filter(d => d.error);
+                        let failedHtml = '';
+                        if (failedOrders.length > 0) {
+                            failedHtml = `
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--beige); color: var(--danger);">
+                                    <strong>⚠️ 同步失敗 (${failedOrders.length}筆)：</strong><br>
+                                    <span style="font-size: 12px;">${failedOrders.map(o => o.orderNo).join(', ')}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        syncResult.innerHTML = `
+                            <strong>${updatedCount > 0 ? '✅ 同步成功！' : '✓ 同步完成'}</strong><br>
+                            <span style="font-size: 13px;">
+                                總共檢查: ${data.total} 筆訂單 | 
+                                已更新: ${updatedCount} 筆 | 
+                                失敗: ${failedOrders.length} 筆
+                            </span>
+                            ${detailsHtml}
+                            ${failedHtml}
+                        `;
+                        
+                        // 如果有更新，刷新交易列表
+                        if (updatedCount > 0) {
+                            setTimeout(() => {
+                                refreshData();
+                            }, 1500);
+                        }
+                    }
+                } else {
+                    throw new Error(result.error || '同步失敗');
+                }
+                
+            } catch (error) {
+                console.error('Sync error:', error);
+                syncResult.style.display = 'block';
+                syncResult.style.background = 'rgba(220, 38, 38, 0.1)';
+                syncResult.style.border = '1px solid rgba(220, 38, 38, 0.2)';
+                syncResult.style.color = 'var(--danger)';
+                syncResult.innerHTML = `
+                    <strong>❌ 同步失敗</strong><br>
+                    <span style="font-size: 13px;">${error.message || '請檢查網絡連接後重試'}</span>
+                `;
+            } finally {
+                // 恢復按鈕狀態
+                syncBtn.disabled = false;
+                syncBtn.textContent = '🔄 同步 EasyLink 訂單';
+            }
+        }
+
+        // 狀態數字轉文字
+        function getStatusText(status) {
+            const statusMap = {
+                0: '生成',
+                1: '支付中',
+                2: '成功',
+                3: '失敗',
+                4: '撤銷',
+                5: '退款',
+                6: '關閉'
+            };
+            return statusMap[status] || status;
+        }
+
         // 綁定篩選事件
         document.addEventListener('DOMContentLoaded', function() {
             if (!checkAuth()) return;
             
+            initTheme();
             loadTransactions();
+            loadStatistics();
             
             // 設置默認日期
             const today = new Date().toISOString().split('T')[0];

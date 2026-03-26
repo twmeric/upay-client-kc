@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付處理中 - King-Chicken</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hermes-orange: #FF6B00;
+            --hermes-dark: #E55A00;
+            --cream: #FAF7F2;
+            --cream-dark: #F5F0E8;
+            --beige: #EDE8E0;
+            --text-dark: #2C2419;
+            --text-medium: #5C4F3D;
+            --text-light: #8B7D6B;
+            --white: #FFFFFF;
+            --gold: #C9A961;
+            --warning: #d97706;
+        }
+
+        body {
+            font-family: Arial, 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .pending-container {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px -15px rgba(44, 36, 25, 0.15);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            border: 1px solid rgba(201, 169, 97, 0.2);
+            text-align: center;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--cream-dark) 0%, var(--beige) 100%);
+            padding: 40px 32px;
+            border-bottom: 3px solid var(--warning);
+        }
+
+        .logo img {
+            height: 60px;
+            width: auto;
+            margin-bottom: 16px;
+        }
+
+        .pending-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--warning), #b45309);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 50px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(217, 119, 6, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pending-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--warning);
+            margin-bottom: 8px;
+        }
+
+        .pending-subtitle {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        .status-box {
+            background: rgba(217, 119, 6, 0.05);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--beige);
+            border-top-color: var(--hermes-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        .status-text {
+            font-size: 16px;
+            color: var(--text-dark);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .status-detail {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--beige);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--hermes-orange), var(--warning));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .order-info {
+            background: var(--cream);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: var(--text-light);
+        }
+
+        .info-value {
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+
+        .info-value.amount {
+            color: var(--hermes-orange);
+            font-weight: 600;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--hermes-orange), var(--hermes-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 107, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--cream);
+            color: var(--text-medium);
+            border: 1px solid var(--beige);
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--beige);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .tips-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--beige);
+            text-align: left;
+        }
+
+        .tips-title {
+            font-size: 14px;
+            color: var(--text-medium);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .tips-list {
+            list-style: none;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .tips-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .tips-list li::before {
+            content: '•';
+            position: absolute;
+            left: 6px;
+            color: var(--hermes-orange);
+        }
+
+        .footer {
+            padding: 20px;
+            border-top: 1px solid var(--beige);
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .pending-container {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pending-container">
+        <div class="header">
+            <div class="logo">
+                <img src="logo-kc.png" alt="King-Chicken" onerror="this.style.display='none'">
+            </div>
+            <div class="pending-icon">⏳</div>
+            <h1 class="pending-title">支付處理中</h1>
+            <p class="pending-subtitle">正在確認支付結果，請稍候...</p>
+        </div>
+        
+        <div class="content">
+            <div class="status-box">
+                <div class="loading-spinner" id="loadingSpinner"></div>
+                <div class="status-text" id="statusText">正在查詢支付狀態...</div>
+                <div class="status-detail" id="statusDetail">已等待 <span id="waitTime">0</span> 秒</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            
+            <div class="order-info">
+                <div class="info-row">
+                    <span class="info-label">訂單編號</span>
+                    <span class="info-value" id="orderNo">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">支付方式</span>
+                    <span class="info-value" id="payType">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">支付金額</span>
+                    <span class="info-value amount" id="amount">-</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="checkBtn" onclick="manualCheck()">
+                🔄 立即刷新狀態
+            </button>
+            <button class="btn btn-secondary" id="cancelBtn" onclick="cancelAndReturn()">
+                ✕ 取消並返回
+            </button>
+            
+            <div class="tips-section">
+                <div class="tips-title">💡 溫馨提示</div>
+                <ul class="tips-list">
+                    <li>支付處理通常需要 3-10 秒，請耐心等待</li>
+                    <li>請勿關閉頁面或返回，以免導致支付失敗</li>
+                    <li>如超過 60 秒仍未完成，請點擊「立即刷新」</li>
+                    <li>如問題持續，請聯繫客服協助處理</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            支付過程中請勿關閉頁面<br>
+            King-Chicken 支付系統
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://easylink-api-v2.jimsbond007.workers.dev';
+        
+        // 解析 URL 參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNo = urlParams.get('mchOrderNo') || urlParams.get('orderNo');
+        const amount = urlParams.get('amount');
+        const wayCode = urlParams.get('wayCode') || '';
+        const merchantCode = urlParams.get('merchant') || 'KC';
+        
+        // 顯示訂單信息
+        document.getElementById('orderNo').textContent = orderNo || '-';
+        
+        // 支付方式名稱映射
+        const payTypeNames = {
+            'UP_OP': '銀聯在線支付',
+            'ALI_H5': '支付寶',
+            'WX_H5': '微信支付'
+        };
+        document.getElementById('payType').textContent = payTypeNames[wayCode] || wayCode || '-';
+        
+        // 格式化金額
+        if (amount) {
+            const formattedAmount = (parseFloat(amount) / 100).toLocaleString('zh-HK', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('amount').textContent = `HK$ ${formattedAmount}`;
+        } else {
+            document.getElementById('amount').textContent = '-';
+        }
+        
+        // 自動查詢支付狀態
+        let checkCount = 0;
+        let waitSeconds = 0;
+        let isChecking = false;
+        
+        async function checkPaymentStatus() {
+            if (!orderNo || isChecking) return;
+            
+            isChecking = true;
+            checkCount++;
+            
+            try {
+                document.getElementById('statusText').textContent = '正在查詢支付狀態...';
+                document.getElementById('checkBtn').disabled = true;
+                
+                // 調用 API 查詢訂單狀態
+                const response = await fetch(`${API_BASE}/api/v1/${merchantCode}/payment/query?orderNo=${orderNo}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const status = result.data.status;
+                    
+                    if (status === 'success') {
+                        // 支付成功，跳轉到成功頁面
+                        redirectToSuccess(result.data);
+                        return;
+                    } else if (status === 'failed') {
+                        // 支付失敗，跳轉到失敗頁面
+                        redirectToFail(result.data);
+                        return;
+                    } else {
+                        // 仍在處理中
+                        document.getElementById('statusText').textContent = '支付正在處理中...';
+                    }
+                }
+                
+                // 更新進度條
+                const progress = Math.min(checkCount * 10, 90);
+                document.getElementById('progressFill').style.width = progress + '%';
+                
+            } catch (error) {
+                console.error('Check status error:', error);
+                document.getElementById('statusText').textContent = '查詢失敗，將自動重試...';
+            } finally {
+                isChecking = false;
+                document.getElementById('checkBtn').disabled = false;
+            }
+        }
+        
+        // 更新等待時間
+        function updateWaitTime() {
+            waitSeconds++;
+            document.getElementById('waitTime').textContent = waitSeconds;
+            
+            // 每 3 秒自動查詢一次
+            if (waitSeconds % 3 === 0) {
+                checkPaymentStatus();
+            }
+            
+            // 60 秒後提示用戶手動刷新
+            if (waitSeconds >= 60) {
+                document.getElementById('statusText').textContent = '查詢超時，請手動刷新';
+                document.getElementById('progressFill').style.width = '100%';
+                clearInterval(waitInterval);
+            }
+        }
+        
+        // 手動刷新
+        function manualCheck() {
+            checkPaymentStatus();
+        }
+        
+        // 跳轉到成功頁面
+        function redirectToSuccess(data) {
+            const params = new URLSearchParams({
+                orderNo: data.orderNo,
+                amount: data.amount,
+                wayCode: data.payType,
+                payOrderId: data.payOrderId,
+                merchant: merchantCode
+            });
+            window.location.href = `./payment-success.html?${params.toString()}`;
+        }
+        
+        // 跳轉到失敗頁面
+        function redirectToFail(data) {
+            const params = new URLSearchParams({
+                orderNo: data.orderNo,
+                amount: data.amount,
+                errMsg: data.remark || '支付失敗'
+            });
+            window.location.href = `./payment-fail.html?${params.toString()}`;
+        }
+        
+        // 取消並返回
+        function cancelAndReturn() {
+            if (confirm('確定要取消支付嗎？\n\n注意：如已完成支付，請勿取消，等待自動跳轉。')) {
+                window.location.href = './';
+            }
+        }
+        
+        // 啟動自動查詢
+        let waitInterval;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 立即查詢一次
+            checkPaymentStatus();
+            
+            // 每秒更新等待時間
+            waitInterval = setInterval(updateWaitTime, 1000);
+        });
+    </script>
+</body>
+</html>

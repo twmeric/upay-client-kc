@@ -13,7 +13,7 @@ database_id = "350594c4-4149-4519-b941-f9c0faf4121c"  # production database
 [vars]
 ENVIRONMENT = "production"
 API_BASE_URL = "https://easylink-api-v2.jimsbond007.workers.dev"
-FRONTEND_URL = "https://easylink-v2.pages.dev"
+FRONTEND_URL = "https://easylink-client-kingchicken.pages.dev"
 EASYLINK_MCH_NO = "80403445499539"
 
 # Secrets (使用 wrangler secret put 設置):

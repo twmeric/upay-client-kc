@@ -1,59 +1,69 @@
-name: Deploy King-Chicken v2
+name: Deploy King-Chicken v2 to Production
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'clients/kingchicken/**'
+      - 'apps/worker/**'
+      - '.github/workflows/**'
   workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
   deploy-worker:
     runs-on: ubuntu-latest
-    name: Deploy Worker
+    name: 🚀 Deploy Worker to Production
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
       
-      - name: Deploy Worker
+      - name: Install Wrangler
+        run: npm install -g wrangler
+      
+      - name: Deploy Worker to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/worker
-          command: deploy
+          command: deploy --env=production
 
-  deploy-web:
+  deploy-admin-panel:
     runs-on: ubuntu-latest
-    name: Deploy Web
+    name: 🌐 Deploy Admin Panel to Pages
     needs: deploy-worker
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
       
-      - name: Prepare Dist
-        run: |
-          mkdir -p dist
-          cp -r apps/web/payment dist/
-          cp -r apps/web/login dist/
-          cp -r apps/web/admin dist/
-          cat > dist/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head><meta http-equiv="refresh" content="0; url=./payment/"></head>
-          <body><p>Redirecting...</p></body>
-          </html>
-          EOF
+      - name: Install Wrangler
+        run: npm install -g wrangler
       
-      - name: Deploy to Pages
+      - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=kingchicken-v2
+          workingDirectory: clients/kingchicken
+          command: pages deploy . --project-name=easylink-client-kingchicken --branch=production
+      
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🔗 Production URLs:"
+          echo "   - Admin Panel: https://easylink-client-kingchicken.pages.dev/admin.html"
+          echo "   - Drivers Page: https://easylink-client-kingchicken.pages.dev/drivers.html"
+          echo "   - Custom Domain: https://king-chicken.jkdcoding.com/admin.html"
