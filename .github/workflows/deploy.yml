@@ -2,12 +2,21 @@ name: Deploy King-Chicken v2 to Production
 
 on:
   push:
-    branches: [main]
+    branches: [production]
     paths:
       - 'clients/kingchicken/**'
       - 'apps/worker/**'
       - '.github/workflows/**'
   workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Deploy target'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
 
 env:
   NODE_VERSION: '20'
@@ -25,9 +34,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name: Install Wrangler
-        run: npm install -g wrangler
-      
       - name: Deploy Worker to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
@@ -38,7 +44,7 @@ jobs:
 
   deploy-admin-panel:
     runs-on: ubuntu-latest
-    name: 🌐 Deploy Admin Panel to Pages
+    name: 🌐 Deploy Admin Panel to Production
     needs: deploy-worker
     steps:
       - name: Checkout Repository
@@ -49,20 +55,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name: Install Wrangler
-        run: npm install -g wrangler
-      
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: clients/kingchicken
-          command: pages deploy . --project-name=easylink-client-kingchicken --branch=production
+          command: pages deploy . --project-name=easylink-client-kingchicken
       
       - name: Deployment Summary
         run: |
-          echo "✅ Deployment completed successfully!"
+          echo "✅ Production Deployment completed!"
           echo "🔗 Production URLs:"
           echo "   - Admin Panel: https://easylink-client-kingchicken.pages.dev/admin.html"
           echo "   - Drivers Page: https://easylink-client-kingchicken.pages.dev/drivers.html"
