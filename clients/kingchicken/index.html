@@ -488,16 +488,7 @@
         </div>
         
         <div class="content" id="paymentForm">
-            <!-- Driver Selection -->
-            <div class="driver-section" id="driverSection">
-                <div class="driver-label">選擇配送司機</div>
-                <select class="driver-select" id="driverSelect">
-                    <option value="">-- 請選擇司機 --</option>
-                    <option value="KC001">KC001 - 張師傅</option>
-                    <option value="KC002">KC002 - 李師傅</option>
-                    <option value="KC003">KC003 - 王師傅</option>
-                </select>
-            </div>
+            <!-- Driver Info (Auto-detected from QR code, hidden if no driver param) -->
             <div class="driver-section hidden" id="autoDriverSection">
                 <div class="driver-label">配送司機</div>
                 <div class="driver-badge">
@@ -593,24 +584,19 @@
             submitBtn.disabled = selectedAmount <= 0;
         }
         
-        // Check URL for driver parameter
+        // 檢查 URL 參數（從司機專屬二維碼自動獲取）
         function initDriverFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
             const driverCode = urlParams.get('driver');
             
             if (driverCode && driverData[driverCode]) {
-                // Auto-select from URL
+                // 從 URL 自動識別司機（客人掃描司機專屬二維碼）
                 selectedDriver = driverCode;
-                document.getElementById('driverSection').classList.add('hidden');
                 document.getElementById('autoDriverSection').classList.remove('hidden');
                 document.getElementById('autoDriverName').textContent = 
                     `${driverCode} - ${driverData[driverCode].name}`;
-            } else {
-                // Manual selection
-                document.getElementById('driverSelect').addEventListener('change', (e) => {
-                    selectedDriver = e.target.value;
-                });
             }
+            // 如果沒有 driver 參數，則不顯示任何司機相關內容
         }
         
         function showError(msg) {
